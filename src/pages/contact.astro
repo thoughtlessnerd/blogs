@@ -2,13 +2,11 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { EMAIL_USER, EMAIL_DOMAIN, SOCIALS } from '../lib/config';
 
-// Rendered as "user [at] domain" rather than a mailto:. A plain address on a
-// public page gets harvested by scrapers within days, and you can never
-// un-publish it. A reader retyping two words is the cheap side of that trade.
-// If you'd rather have one-click mail, swap this for:
-//   <a href={`mailto:${EMAIL_USER}@${EMAIL_DOMAIN}`}>…</a>
-const [domainName, ...domainRest] = EMAIL_DOMAIN.split('.');
-const obfuscatedEmail = `${EMAIL_USER} [at] ${domainName} [dot] ${domainRest.join('.')}`;
+// Shown in full, as a plain string rather than a mailto:. Note this address
+// is now scrapeable from the published page — that is the trade for making it
+// easy to read and copy. To make it clickable too:
+//   <a href={`mailto:${email}`}>{email}</a>
+const email = `${EMAIL_USER}@${EMAIL_DOMAIN}`;
 ---
 <BaseLayout title="Contact" description="How to get in touch with me.">
   <h1>Contact</h1>
@@ -18,7 +16,7 @@ const obfuscatedEmail = `${EMAIL_USER} [at] ${domainName} [dot] ${domainRest.joi
     you're working on. The fastest way to reach me is email:
   </p>
 
-  <p class="contact-email">{obfuscatedEmail}</p>
+  <p class="contact-email">{email}</p>
 
   {SOCIALS.length > 0 && (
     <>

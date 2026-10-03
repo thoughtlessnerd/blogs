@@ -16,11 +16,9 @@ export const EMAIL_USER = 'abhay.csgo001';
 export const EMAIL_DOMAIN = 'gmail.com';
 
 // Shown on /contact. Delete any you don't want, add any you do.
-// TODO: fill in the handles — only GitHub is known to be correct right now.
 export const SOCIALS = [
   { label: 'GitHub', handle: '@thoughtlessnerd', url: 'https://github.com/thoughtlessnerd' },
-  // { label: 'LinkedIn', handle: '/in/your-handle', url: 'https://linkedin.com/in/your-handle' },
-  // { label: 'X', handle: '@your-handle', url: 'https://x.com/your-handle' },
+  { label: 'LinkedIn', handle: '/in/thoughtlessnerd', url: 'https://linkedin.com/in/thoughtlessnerd' },
 ];
 
 // GoatCounter's site code. It is a public identifier (same category as a
