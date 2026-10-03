@@ -1,10 +1,47 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { withBase } from '../lib/url';
+
+// TODO (you): everything below in [square brackets] is a placeholder — replace
+// it with your own details and delete the brackets. The section order is
+// deliberate: who you are, why the blog exists, what a reader can expect,
+// then background. Search engines and first-time readers both want the first
+// two answered in the opening sentence.
 ---
-<BaseLayout title="About" description="About this blog.">
+<BaseLayout
+  title="About"
+  description="About me and this blog — math proofs worked through for fun, and the occasional devlog."
+>
   <h1>About</h1>
+
   <p>
-    This is a personal blog for math proofs I work through for fun,
-    and occasionally notes on things I'm building.
+    I'm Abhay — [one line on what you do: e.g. a computer science student at
+    X, or a backend engineer at Y]. This blog is where I write up math proofs
+    I work through for fun, and occasionally notes on things I'm building.
+  </p>
+
+  <h2>Why this blog exists</h2>
+  <p>
+    [Why you write these up. A genuine reason reads better than a mission
+    statement — e.g. "writing a proof out properly is the only way I find out
+    whether I actually understood it", or "I kept losing these in notebooks".]
+  </p>
+
+  <h2>What you'll find here</h2>
+  <p>
+    [The topics you expect to cover — e.g. number theory, combinatorics,
+    probability puzzles, competitive-programming problems. It's fine to be
+    loose; this sets reader expectations, not a contract.]
+  </p>
+
+  <h2>Background</h2>
+  <p>
+    [Short — a few sentences. Education, what you work on, what got you into
+    math. This is the part that makes a stranger trust the proofs, so it's
+    worth filling in properly.]
+  </p>
+
+  <p>
+    If you want to reach me, see the <a href={withBase('/contact/')}>contact page</a>.
   </p>
 </BaseLayout>

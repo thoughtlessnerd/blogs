@@ -1,6 +1,8 @@
 ---
+import fs from 'node:fs';
+import path from 'node:path';
 import { withBase } from '../lib/url';
-import { GOATCOUNTER_CODE } from '../lib/config';
+import { AUTHOR, SITE_START_YEAR, GOATCOUNTER_CODE } from '../lib/config';
 import FlipName from '../components/FlipName.astro';
 import '../styles/global.css';
 
@@ -15,6 +17,19 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const SITE_NAME = 'Math Proofs & Devlogs';
 // The home page is its own title; inner pages get suffixed.
 const pageTitle = title === SITE_NAME ? title : `${title} — ${SITE_NAME}`;
+
+// Only link the resume once the file is actually there. Drop a PDF at
+// public/resume.pdf and the button appears on the next build; without this
+// the nav would advertise a 404.
+//
+// Resolved from the project root, not import.meta.url: this component gets
+// bundled before it runs, so a path relative to the module lands somewhere
+// inside the build output and the check silently never fires.
+const hasResume = fs.existsSync(path.join(process.cwd(), 'public', 'resume.pdf'));
+
+const currentYear = new Date().getFullYear();
+const copyrightYears =
+  currentYear > SITE_START_YEAR ? `${SITE_START_YEAR}–${currentYear}` : `${SITE_START_YEAR}`;
 ---
 <!doctype html>
 <html lang="en">
@@ -50,6 +65,8 @@ const pageTitle = title === SITE_NAME ? title : `${title} — ${SITE_NAME}`;
         <nav class="site-nav">
           <a href={withBase('/')}>Home</a>
           <a href={withBase('/about/')}>About</a>
+          <a href={withBase('/contact/')}>Contact</a>
+          {hasResume && <a href={withBase('/resume.pdf')}>Resume</a>}
           <a href={withBase('/rss.xml')}>RSS</a>
         </nav>
       </div>
@@ -59,7 +76,10 @@ const pageTitle = title === SITE_NAME ? title : `${title} — ${SITE_NAME}`;
     </main>
     <footer class="site-footer">
       <div class="site-footer__inner">
-        Math proofs done for fun, and the occasional devlog.
+        <span>Math proofs done for fun, and the occasional devlog.</span>
+        <small class="site-footer__copyright">
+          © {copyrightYears} {AUTHOR}. All rights reserved.
+        </small>
       </div>
     </footer>
   </body>

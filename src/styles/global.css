@@ -170,7 +170,49 @@ body {
 }
 
 .site-footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 1.5rem;
   padding-block: 1.5rem;
+}
+
+.site-footer__copyright {
+  font-size: inherit;
+  white-space: nowrap;
+}
+
+/* ---------- contact ---------- */
+
+.contact-email {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95rem;
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+  /* Long addresses must not push the page sideways on a phone. */
+  overflow-wrap: anywhere;
+}
+
+.contact-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.contact-links li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.contact-links__label {
+  min-width: 6rem;
+  color: var(--muted);
 }
 
 /* ---------- typography ---------- */
