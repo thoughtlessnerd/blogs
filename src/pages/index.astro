@@ -1,32 +1,37 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { withBase } from '../lib/url';
-import { formatDate, isoDate } from '../lib/date';
+import PostList from '../components/PostList.astro';
 import { getCollection } from 'astro:content';
 
+const RECENT_MONTHS = 3;
+
+// Newest first, across both groups.
 const posts = (await getCollection('posts')).sort(
   (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
 );
+
+// NOTE: this cutoff is computed at BUILD time, not when someone visits. A
+// post crosses from Latest into Archived on the next rebuild, not on the day
+// it turns three months old. Publishing anything rebuilds the whole site, so
+// this self-corrects as long as you post now and then.
+const cutoff = new Date();
+cutoff.setMonth(cutoff.getMonth() - RECENT_MONTHS);
+
+const groups = [
+  { heading: 'Latest', posts: posts.filter((p) => p.data.pubDate >= cutoff) },
+  { heading: 'Archived', posts: posts.filter((p) => p.data.pubDate < cutoff) },
+].filter((group) => group.posts.length > 0);
 ---
 <BaseLayout title="Math Proofs & Devlogs" description="Math proofs done for fun, and the occasional devlog.">
   <h1>Posts</h1>
-  {posts.length === 0 ? (
+  {groups.length === 0 ? (
     <p>Nothing published yet.</p>
   ) : (
-    <ul class="post-list">
-      {posts.map((post) => (
-        <li>
-          <a href={withBase(`/posts/${post.id}/`)}>
-            <span class="post-list__head">
-              <span class="post-list__title">{post.data.title}</span>
-              <time class="post-date" datetime={isoDate(post.data.pubDate)}>
-                {formatDate(post.data.pubDate)}
-              </time>
-            </span>
-            <span class="post-list__desc">{post.data.description}</span>
-          </a>
-        </li>
-      ))}
-    </ul>
+    groups.map((group) => (
+      <section class="post-group">
+        <h2 class="post-group__heading">{group.heading}</h2>
+        <PostList posts={group.posts} />
+      </section>
+    ))
   )}
 </BaseLayout>

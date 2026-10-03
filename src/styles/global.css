@@ -285,6 +285,19 @@ pre code {
 
 /* ---------- post list ---------- */
 
+.post-group + .post-group {
+  margin-top: 3rem;
+}
+
+.post-group__heading {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .post-list {
   list-style: none;
   margin: 0;
@@ -328,9 +341,20 @@ pre code {
 
 /* ---------- post ---------- */
 
+/* Rule under the title block, so the post body reads as a separate thing
+   from its metadata rather than running straight on from the date. */
+.post-header {
+  padding-bottom: 1.4rem;
+  margin-bottom: 2.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.post-header h1 {
+  margin-bottom: 0.5rem;
+}
+
 .post-meta {
   display: block;
-  margin-bottom: 2.25rem;
   color: var(--muted);
   font-size: 0.875rem;
 }
