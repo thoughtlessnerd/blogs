@@ -1,12 +1,14 @@
+// @ts-check
 import { defineConfig } from 'astro/config';
+import sitemap from '@astrojs/sitemap';
 import remarkMath from 'remark-math';
 import rehypeMathjax from 'rehype-mathjax';
 
 export default defineConfig({
-  // TODO before first deploy (Task 5): replace with your real GitHub Pages
-  // URL, e.g. site: 'https://yourusername.github.io', base: '/blogs'
-  site: 'https://yourusername.github.io',
+  // Deploy target: https://thoughtlessnerd.github.io/blogs
+  site: 'https://thoughtlessnerd.github.io',
   base: '/blogs',
+  integrations: [sitemap()],
   markdown: {
     remarkPlugins: [remarkMath],
     rehypePlugins: [rehypeMathjax],

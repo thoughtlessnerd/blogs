@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://thoughtlessnerd.github.io/blogs/sitemap-index.xml
