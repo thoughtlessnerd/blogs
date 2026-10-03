@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { slugify, saveDraft, readDraft, listDrafts, publishDraft } from '../lib/posts.js';
+import { slugify, saveDraft, readDraft, listDrafts, publishDraft, localDateString } from '../lib/posts.js';
 
 let tmpRoot, draftsDir, postsDir;
 
@@ -23,6 +23,19 @@ describe('slugify', () => {
 
   it('trims leading/trailing dashes from punctuation', () => {
     expect(slugify('  -- Edge Case -- ')).toBe('edge-case');
+  });
+});
+
+describe('localDateString', () => {
+  it('uses the local calendar date, not the UTC one', () => {
+    // 2026-10-04 00:30 local. toISOString() on this would report 2026-10-03
+    // at any positive UTC offset, stamping the wrong day on the post.
+    const justAfterMidnight = new Date(2026, 9, 4, 0, 30, 0);
+    expect(localDateString(justAfterMidnight)).toBe('2026-10-04');
+  });
+
+  it('zero-pads single-digit months and days', () => {
+    expect(localDateString(new Date(2026, 0, 5, 12, 0, 0))).toBe('2026-01-05');
   });
 });
 

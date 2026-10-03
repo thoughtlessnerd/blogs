@@ -2,6 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import matter from 'gray-matter';
 
+// Local calendar date as YYYY-MM-DD. Date#toISOString would convert to UTC
+// first, which stamps the previous day onto anything published in the evening
+// at a positive UTC offset.
+export function localDateString(d = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export function slugify(title) {
   return title
     .toLowerCase()
@@ -43,7 +51,7 @@ export function publishDraft({ draftsDir, postsDir, slug }) {
   const parsed = matter(raw);
 
   if (!parsed.data.pubDate) {
-    parsed.data.pubDate = new Date().toISOString().slice(0, 10);
+    parsed.data.pubDate = localDateString();
   }
 
   const finalContents = matter.stringify(parsed.content, parsed.data);

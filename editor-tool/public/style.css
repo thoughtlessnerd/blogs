@@ -1,0 +1,8 @@
+body { font-family: system-ui, sans-serif; margin: 0; }
+header { display: flex; gap: 0.5rem; padding: 0.75rem; border-bottom: 1px solid #ccc; }
+header input { flex: 1; padding: 0.4rem; }
+#dropzone { display: flex; height: calc(100vh - 60px); }
+#editor, #preview { flex: 1; padding: 1rem; overflow-y: auto; box-sizing: border-box; }
+#editor { border: none; resize: none; font-family: ui-monospace, monospace; font-size: 1rem; }
+#preview { border-left: 1px solid #ccc; }
+#dropzone.dragging { outline: 2px dashed #4a90d9; outline-offset: -4px; }

@@ -3,8 +3,31 @@
 <head>
   <meta charset="utf-8" />
   <title>Write a post</title>
+  <link rel="stylesheet" href="/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] } };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
 </head>
 <body>
-  <h1>Editor tool coming together — UI added in Task 10.</h1>
+  <header>
+    <select id="draftPicker" title="Open an existing draft">
+      <option value="">— new post —</option>
+    </select>
+    <input id="title" placeholder="Post title" />
+    <input id="description" placeholder="Short description (for SEO)" />
+    <select id="type">
+      <option value="math">math</option>
+      <option value="devlog">devlog</option>
+    </select>
+    <button id="saveDraft">Save Draft</button>
+    <button id="publish">Publish</button>
+  </header>
+  <main id="dropzone">
+    <textarea id="editor" placeholder="Write markdown here..."></textarea>
+    <div id="preview"></div>
+  </main>
+  <script type="module" src="/editor.js"></script>
 </body>
 </html>
