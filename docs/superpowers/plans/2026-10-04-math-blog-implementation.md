@@ -6,7 +6,7 @@
 
 **Architecture:** An Astro static site at the repo root (content collection of markdown posts, MathJax rendering at build time, SEO metadata, RSS/sitemap, a third-party view counter) deployed via GitHub Actions on every push to `main`. A fully separate Node/Express app in `editor-tool/` — never bundled into the deployed site — provides a local web UI for drafting posts, saving drafts outside the Astro build's reach, and publishing (move + git commit + git push) in one click.
 
-**Tech Stack:** Astro 5 (Content Layer API), remark-math / rehype-mathjax, @astrojs/sitemap, @astrojs/rss, GitHub Actions (`withastro/action` + `actions/deploy-pages`), Node.js + Express + gray-matter + multer + simple-git for the editor tool, Vitest for editor-tool unit tests.
+**Tech Stack:** Astro 7 (Content Layer API), remark-math / rehype-mathjax, @astrojs/sitemap, @astrojs/rss, GitHub Actions (`withastro/action` + `actions/deploy-pages`), Node.js + Express + gray-matter + multer + simple-git for the editor tool, Vitest for editor-tool unit tests.
 
 ## Global Constraints
 
@@ -16,7 +16,10 @@
 - Authoring happens only locally (no mobile/remote editing).
 - No tags/filtering, no ideas backlog, no comments, no user accounts (v1 scope, per spec).
 - Drafts (`drafts/`) must live outside `src/content/` so they are structurally impossible for Astro to publish, not just filtered out.
-- Node.js >= 18 required (for native `fetch`, modern `fs` APIs).
+- Node.js >= 22.12.0 required at the repo root — this is Astro 7's own
+  `engines` floor, so CI and local dev must both use Node 22+. The
+  `editor-tool/` sub-package only needs >= 18, but there is no reason to run
+  it on anything older than the root requirement.
 
 ---
 
@@ -545,6 +548,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: withastro/action@v3
+        with:
+          # Astro 7 requires Node >= 22.12.0 — do not drop this, the
+          # action's default Node version is older and the build will fail.
+          node-version: 22
 
   deploy:
     needs: build
