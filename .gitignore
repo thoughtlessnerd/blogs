@@ -4,3 +4,6 @@ dist/
 .env
 editor-tool/node_modules/
 .superpowers/
+# Unpublished work-in-progress. Publishing moves a draft into
+# src/content/posts/, which is what gets committed.
+drafts/
