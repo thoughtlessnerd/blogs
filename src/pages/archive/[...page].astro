@@ -1,0 +1,39 @@
+---
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostList from '../../components/PostList.astro';
+import { withBase } from '../../lib/url';
+import { getCollection } from 'astro:content';
+
+export const POSTS_PER_PAGE = 20;
+
+// The homepage only shows recent work. This is the full index, paginated so
+// it stays a reasonable page size however many posts pile up.
+export const getStaticPaths: GetStaticPaths = async ({ paginate }) => {
+  const posts = (await getCollection('posts')).sort(
+    (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+  );
+  return paginate(posts, { pageSize: POSTS_PER_PAGE });
+};
+
+const { page } = Astro.props;
+---
+<BaseLayout
+  title={page.currentPage === 1 ? 'Archive' : `Archive — page ${page.currentPage}`}
+  description="Every post, newest first."
+>
+  <h1>Archive</h1>
+  <p class="archive-count">
+    {page.total} {page.total === 1 ? 'post' : 'posts'}
+    {page.lastPage > 1 && <> · page {page.currentPage} of {page.lastPage}</>}
+  </p>
+
+  <PostList posts={page.data} />
+
+  {page.lastPage > 1 && (
+    <nav class="pagination">
+      {page.url.prev ? <a href={page.url.prev}>← Newer</a> : <span>← Newer</span>}
+      {page.url.next ? <a href={page.url.next}>Older →</a> : <span>Older →</span>}
+    </nav>
+  )}
+</BaseLayout>

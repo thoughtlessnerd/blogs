@@ -9,8 +9,10 @@ import '../styles/global.css';
 interface Props {
   title: string;
   description: string;
+  /** schema.org JSON-LD for this page, if it has any. */
+  jsonLd?: Record<string, unknown>;
 }
-const { title, description } = Astro.props;
+const { title, description, jsonLd } = Astro.props;
 // Astro.url.pathname already includes the base path — do NOT wrap in withBase.
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
@@ -49,6 +51,9 @@ const copyrightYears =
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <link rel="alternate" type="application/rss+xml" title="RSS" href={withBase('/rss.xml')} />
+    {jsonLd && (
+      <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />
+    )}
     {GOATCOUNTER_CODE && (
       <script
         data-goatcounter={`https://${GOATCOUNTER_CODE}.goatcounter.com/count`}

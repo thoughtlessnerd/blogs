@@ -2,8 +2,14 @@ import rss from '@astrojs/rss';
 import { getCollection } from 'astro:content';
 import { withBase } from '../lib/url';
 
+// Feed readers only ever show recent items, and an uncapped feed grows
+// without bound. 20 is the usual convention.
+const FEED_LIMIT = 20;
+
 export async function GET(context) {
-  const posts = await getCollection('posts');
+  const posts = (await getCollection('posts'))
+    .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+    .slice(0, FEED_LIMIT);
   return rss({
     title: 'Math Proofs & Devlogs',
     description: 'Math proofs done for fun, and the occasional devlog.',

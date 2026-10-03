@@ -1,9 +1,12 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostList from '../components/PostList.astro';
+import { withBase } from '../lib/url';
 import { getCollection } from 'astro:content';
 
 const RECENT_MONTHS = 3;
+// Keep the homepage short once the archive grows; the rest lives at /archive.
+const MAX_ARCHIVED_ON_HOME = 10;
 
 // Newest first, across both groups.
 const posts = (await getCollection('posts')).sort(
@@ -17,9 +20,12 @@ const posts = (await getCollection('posts')).sort(
 const cutoff = new Date();
 cutoff.setMonth(cutoff.getMonth() - RECENT_MONTHS);
 
+const archived = posts.filter((p) => p.data.pubDate < cutoff);
+const hiddenCount = Math.max(0, archived.length - MAX_ARCHIVED_ON_HOME);
+
 const groups = [
   { heading: 'Latest', posts: posts.filter((p) => p.data.pubDate >= cutoff) },
-  { heading: 'Archived', posts: posts.filter((p) => p.data.pubDate < cutoff) },
+  { heading: 'Archived', posts: archived.slice(0, MAX_ARCHIVED_ON_HOME) },
 ].filter((group) => group.posts.length > 0);
 ---
 <BaseLayout title="Math Proofs & Devlogs" description="Math proofs done for fun, and the occasional devlog.">
@@ -27,11 +33,20 @@ const groups = [
   {groups.length === 0 ? (
     <p>Nothing published yet.</p>
   ) : (
-    groups.map((group) => (
-      <section class="post-group">
-        <h2 class="post-group__heading">{group.heading}</h2>
-        <PostList posts={group.posts} />
-      </section>
-    ))
+    <>
+      {groups.map((group) => (
+        <section class="post-group">
+          <h2 class="post-group__heading">{group.heading}</h2>
+          <PostList posts={group.posts} />
+        </section>
+      ))}
+      {hiddenCount > 0 && (
+        <p class="archive-link">
+          <a href={withBase('/archive/')}>
+            See all {posts.length} posts →
+          </a>
+        </p>
+      )}
+    </>
   )}
 </BaseLayout>
