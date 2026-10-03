@@ -1,0 +1,301 @@
+:root {
+  --bg: #ffffff;
+  --fg: #16181d;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --accent-soft: #eff4ff;
+  --content: 44rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115;
+    --fg: #e6e8eb;
+    --muted: #9aa3af;
+    --border: #252932;
+    --accent: #7aa2f7;
+    --accent-soft: #171c27;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- layout ---------- */
+
+.site-header {
+  border-bottom: 1px solid var(--border);
+}
+
+.site-header__inner,
+.site-main,
+.site-footer__inner {
+  max-width: var(--content);
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+.site-header__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  padding-block: 1.1rem;
+}
+
+.site-title {
+  font-size: 0.8rem;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg);
+  text-decoration: none;
+}
+
+.site-title:hover {
+  color: var(--accent);
+}
+
+/* The gap is what separates the links. Without it they render as one
+   run-on word, which is exactly how the first version shipped. */
+.site-nav {
+  display: flex;
+  gap: 1.25rem;
+  font-size: 0.9rem;
+}
+
+.site-nav a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.site-nav a:hover {
+  color: var(--accent);
+}
+
+.site-main {
+  padding-block: 3rem 4rem;
+}
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.site-footer__inner {
+  padding-block: 1.5rem;
+}
+
+/* ---------- typography ---------- */
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  margin: 2.5rem 0 0.75rem;
+}
+
+h1 {
+  font-size: 1.9rem;
+  margin-top: 0;
+}
+
+h2 {
+  font-size: 1.3rem;
+}
+
+h3 {
+  font-size: 1.1rem;
+}
+
+p,
+ul,
+ol {
+  margin: 0 0 1.15rem;
+}
+
+a {
+  color: var(--accent);
+  text-underline-offset: 0.18em;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 2.5rem 0;
+}
+
+blockquote {
+  margin: 1.5rem 0;
+  padding: 0.25rem 0 0.25rem 1.1rem;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  background: var(--accent-soft);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+}
+
+pre {
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+/* ---------- post list ---------- */
+
+.post-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.post-list li + li {
+  margin-top: 0.3rem;
+  border-top: 1px solid var(--border);
+}
+
+.post-list a {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.2rem 1rem;
+  padding: 0.85rem 0;
+  text-decoration: none;
+  color: var(--fg);
+}
+
+.post-list a:hover .post-list__title {
+  color: var(--accent);
+}
+
+.post-list__title {
+  font-weight: 550;
+}
+
+/* ---------- post ---------- */
+
+.post-meta {
+  display: block;
+  margin-bottom: 2.25rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.post-date {
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.post-body > :first-child {
+  margin-top: 0;
+}
+
+.post-body img,
+.post-body video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.75rem 0;
+  border-radius: 8px;
+}
+
+.post-footer {
+  margin-top: 3.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.view-badge {
+  display: block;
+  opacity: 0.75;
+  border-radius: 4px;
+}
+
+/* ---------- math ----------
+   MathJax emits SVG with fill="currentColor", so it follows --fg in both
+   themes for free.
+
+   Width is the real hazard. A long expression is easily wider than a phone
+   screen, and an un-constrained SVG drags the whole page into sideways
+   scrolling. Two cases, handled differently:
+
+   - Inline math sits mid-sentence, so it cannot become a scroll box without
+     wrecking the line. It is capped at the column width and scales down.
+   - Display math is its own block, so it keeps full size and scrolls inside
+     its own box, which stays readable. */
+
+mjx-container {
+  max-width: 100%;
+}
+
+mjx-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+mjx-container[display="true"] {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.4rem;
+}
+
+mjx-container[display="true"] svg {
+  max-width: none;
+}
+
+/* ---------- small screens ---------- */
+
+@media (max-width: 34rem) {
+  body {
+    font-size: 0.975rem;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+  }
+
+  .site-main {
+    padding-block: 2.25rem 3rem;
+  }
+
+  .post-list a {
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+}

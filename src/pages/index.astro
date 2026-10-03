@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { withBase } from '../lib/url';
+import { formatDate, isoDate } from '../lib/date';
 import { getCollection } from 'astro:content';
 
 const posts = (await getCollection('posts')).sort(
@@ -9,14 +10,20 @@ const posts = (await getCollection('posts')).sort(
 ---
 <BaseLayout title="Math Proofs & Devlogs" description="Math proofs done for fun, and the occasional devlog.">
   <h1>Posts</h1>
-  <ul>
-    {posts.map((post) => (
-      <li>
-        <a href={withBase(`/posts/${post.id}/`)}>{post.data.title}</a>
-        — <time datetime={post.data.pubDate.toISOString()}>
-          {post.data.pubDate.toDateString()}
-        </time>
-      </li>
-    ))}
-  </ul>
+  {posts.length === 0 ? (
+    <p>Nothing published yet.</p>
+  ) : (
+    <ul class="post-list">
+      {posts.map((post) => (
+        <li>
+          <a href={withBase(`/posts/${post.id}/`)}>
+            <span class="post-list__title">{post.data.title}</span>
+            <time class="post-date" datetime={isoDate(post.data.pubDate)}>
+              {formatDate(post.data.pubDate)}
+            </time>
+          </a>
+        </li>
+      ))}
+    </ul>
+  )}
 </BaseLayout>

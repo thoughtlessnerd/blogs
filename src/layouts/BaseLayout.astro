@@ -1,5 +1,7 @@
 ---
 import { withBase } from '../lib/url';
+import { GOATCOUNTER_CODE } from '../lib/config';
+import '../styles/global.css';
 
 interface Props {
   title: string;
@@ -8,15 +10,21 @@ interface Props {
 const { title, description } = Astro.props;
 // Astro.url.pathname already includes the base path — do NOT wrap in withBase.
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+
+const SITE_NAME = 'Math Proofs & Devlogs';
+// The home page is its own title; inner pages get suffixed.
+const pageTitle = title === SITE_NAME ? title : `${title} — ${SITE_NAME}`;
 ---
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width" />
-    <title>{title}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
+    <meta name="color-scheme" content="light dark" />
+    <meta property="og:site_name" content={SITE_NAME} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="article" />
@@ -25,19 +33,31 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <link rel="alternate" type="application/rss+xml" title="RSS" href={withBase('/rss.xml')} />
-    <!-- Sign up free at https://www.goatcounter.com and replace YOUR_GOATCOUNTER_CODE -->
-    <script
-      data-goatcounter="https://YOUR_GOATCOUNTER_CODE.goatcounter.com/count"
-      async
-      src="//gc.zgo.at/count.js"></script>
+    {GOATCOUNTER_CODE && (
+      <script
+        data-goatcounter={`https://${GOATCOUNTER_CODE}.goatcounter.com/count`}
+        async
+        src="https://gc.zgo.at/count.js"></script>
+    )}
   </head>
   <body>
-    <nav>
-      <a href={withBase('/')}>Home</a>
-      <a href={withBase('/about/')}>About</a>
-    </nav>
-    <main>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a class="site-title" href={withBase('/')}>Math Proofs</a>
+        <nav class="site-nav">
+          <a href={withBase('/')}>Home</a>
+          <a href={withBase('/about/')}>About</a>
+          <a href={withBase('/rss.xml')}>RSS</a>
+        </nav>
+      </div>
+    </header>
+    <main class="site-main">
       <slot />
     </main>
+    <footer class="site-footer">
+      <div class="site-footer__inner">
+        Math proofs done for fun, and the occasional devlog.
+      </div>
+    </footer>
   </body>
 </html>
