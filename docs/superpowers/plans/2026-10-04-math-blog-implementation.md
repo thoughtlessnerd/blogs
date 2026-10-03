@@ -4,7 +4,7 @@
 
 **Goal:** Build a free, static, zero-backend personal blog (Astro, deployed to GitHub Pages) for math proof write-ups, plus a standalone local-only authoring tool with live preview, drag-and-drop media, and one-click publish-and-deploy.
 
-**Architecture:** An Astro static site at the repo root (content collection of markdown posts, MathJax rendering at build time, SEO metadata, RSS/sitemap, a third-party view counter) deployed via GitHub Actions on every push to `main`. A fully separate Node/Express app in `editor-tool/` — never bundled into the deployed site — provides a local web UI for drafting posts, saving drafts outside the Astro build's reach, and publishing (move + git commit + git push) in one click.
+**Architecture:** An Astro static site at the repo root (content collection of markdown posts, MathJax rendering at build time, SEO metadata, RSS/sitemap, a third-party view counter) deployed via GitHub Actions on every push to `master`. A fully separate Node/Express app in `editor-tool/` — never bundled into the deployed site — provides a local web UI for drafting posts, saving drafts outside the Astro build's reach, and publishing (move + git commit + git push) in one click.
 
 **Tech Stack:** Astro 7 (Content Layer API), remark-math / rehype-mathjax, @astrojs/sitemap, @astrojs/rss, GitHub Actions (`withastro/action` + `actions/deploy-pages`), Node.js + Express + gray-matter + multer + simple-git for the editor tool, Vitest for editor-tool unit tests.
 
@@ -20,6 +20,19 @@
   `engines` floor, so CI and local dev must both use Node 22+. The
   `editor-tool/` sub-package only needs >= 18, but there is no reason to run
   it on anything older than the root requirement.
+- **Deploy target is `https://thoughtlessnerd.github.io/blogs`** — a project
+  page served from a subpath, so `base: '/blogs'` in `astro.config.mjs`.
+- **The deploy branch is `master`, not `main`.** Every workflow trigger, git
+  push target, and user-facing confirmation string must say `master`.
+- **Every internal link must be base-aware.** Verified empirically on this
+  project: `import.meta.env.BASE_URL` is `/blogs` — **no trailing slash** —
+  so naive concatenation like `` `${BASE_URL}posts/` `` yields the broken
+  `/blogsposts/`. Always build internal hrefs with the `withBase()` helper
+  (created in Task 3). A hardcoded root-relative href such as `/about/` or
+  `/posts/x/` is a defect: it 404s on the deployed site.
+  Note `Astro.url.pathname` DOES already include the base, so canonical-URL
+  construction via `new URL(Astro.url.pathname, Astro.site)` is correct
+  as-is and must NOT be wrapped in `withBase()`.
 
 ---
 
@@ -35,6 +48,8 @@ blogs/
 │   ├── content/
 │   │   └── posts/
 │   │       └── hello-world.md     # example published post
+│   ├── lib/
+│   │   └── url.ts                 # withBase() — base-path-aware links
 │   ├── layouts/
 │   │   └── BaseLayout.astro       # shared head/SEO/nav/GoatCounter
 │   ├── pages/
@@ -44,9 +59,10 @@ blogs/
 │   │   └── posts/
 │   │       └── [id].astro         # post detail page + view badge
 │   └── assets/
-│       └── posts/                 # per-post images/video, created as needed
+│       └── posts/<slug>/          # per-post IMAGES (Astro-optimized)
 ├── public/
-│   └── robots.txt
+│   ├── robots.txt
+│   └── media/<slug>/              # per-post VIDEOS (copied verbatim)
 ├── drafts/
 │   └── .gitkeep                   # outside src/content — never published
 ├── .github/
@@ -264,24 +280,49 @@ git commit -m "Add content collection, math rendering, and homepage list"
 ### Task 3: Shared layout (SEO/OG/view counter), post page, about page
 
 **Files:**
+- Create: `src/lib/url.ts`
 - Create: `src/layouts/BaseLayout.astro`
 - Create: `src/pages/posts/[id].astro`
 - Create: `src/pages/about.astro`
-- Modify: `src/pages/index.astro` (use the new layout)
+- Modify: `src/pages/index.astro` (use the new layout + fix its base-path bug)
 
 **Interfaces:**
+- Produces: `withBase(path: string): string` from `src/lib/url.ts` — prefixes an
+  app-absolute path with the configured base path.
 - Produces: `BaseLayout.astro` accepting props `{ title: string, description: string }` with a default `<slot />` for page content.
 - Consumes: `posts` collection from Task 2 (`getCollection('posts')`, `.id`, `.data.title/.description/.pubDate`).
+
+- [ ] **Step 0: Write the base-path helper**
+
+Task 2 shipped `src/pages/index.astro` with a hardcoded `/posts/${post.id}/`
+href, which 404s under `base: '/blogs'`. This step adds the helper that fixes
+it; later steps use it for every internal link.
+
+Create `src/lib/url.ts`:
+
+```ts
+// import.meta.env.BASE_URL is the configured `base`. On this project it is
+// "/blogs" with NO trailing slash (verified), and it is "/" when no base is
+// set. Normalizing both ends makes the join safe in either case.
+export function withBase(path: string): string {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  const suffix = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${suffix}`;
+}
+```
 
 - [ ] **Step 1: Write `BaseLayout.astro`**
 
 ```astro
 ---
+import { withBase } from '../lib/url';
+
 interface Props {
   title: string;
   description: string;
 }
 const { title, description } = Astro.props;
+// Astro.url.pathname already includes the base path — do NOT wrap in withBase.
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 ---
 <!doctype html>
@@ -299,7 +340,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <link rel="alternate" type="application/rss+xml" title="RSS" href="/rss.xml" />
+    <link rel="alternate" type="application/rss+xml" title="RSS" href={withBase('/rss.xml')} />
     <!-- Sign up free at https://www.goatcounter.com and replace YOUR_GOATCOUNTER_CODE -->
     <script
       data-goatcounter="https://YOUR_GOATCOUNTER_CODE.goatcounter.com/count"
@@ -308,8 +349,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
   </head>
   <body>
     <nav>
-      <a href="/">Home</a>
-      <a href="/about/">About</a>
+      <a href={withBase('/')}>Home</a>
+      <a href={withBase('/about/')}>About</a>
     </nav>
     <main>
       <slot />
@@ -323,6 +364,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 ```astro
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { withBase } from '../lib/url';
 import { getCollection } from 'astro:content';
 
 const posts = (await getCollection('posts')).sort(
@@ -334,7 +376,7 @@ const posts = (await getCollection('posts')).sort(
   <ul>
     {posts.map((post) => (
       <li>
-        <a href={`/posts/${post.id}/`}>{post.data.title}</a>
+        <a href={withBase(`/posts/${post.id}/`)}>{post.data.title}</a>
         — <time datetime={post.data.pubDate.toISOString()}>
           {post.data.pubDate.toDateString()}
         </time>
@@ -412,11 +454,44 @@ grep -o '<title>[^<]*</title>' dist/about/index.html
 
 Expected output: the post's title tag (`<title>Hello, Proofs</title>`), a `visitor-badge.laobi.icu/badge?page_id=math-proofs-blog.hello-world` match, and `<title>About</title>`.
 
+Now verify the math actually renders on the post page — this is the first
+build in which a post body is rendered at all, so it is the first real
+end-to-end proof of the math pipeline:
+
+```bash
+grep -c 'mjx-container' dist/posts/hello-world/index.html
+grep -c 'p_1 p_2' dist/posts/hello-world/index.html
+```
+
+Expected: the first returns a non-zero count (MathJax produced real markup).
+The second must return `0` — a non-zero count means raw LaTeX leaked into the
+page instead of being typeset.
+
+Finally, verify every internal link is base-aware. These greps are the
+regression test for the `withBase` helper:
+
+```bash
+grep -oE 'href="/[^"]*"' dist/index.html dist/about/index.html dist/posts/hello-world/index.html
+```
+
+Expected: EVERY emitted internal href starts with `/blogs/` (e.g.
+`/blogs/posts/hello-world/`, `/blogs/about/`, `/blogs/rss.xml`). If you see a
+bare `/posts/...`, `/about/`, or `/rss.xml` with no `/blogs` prefix, the
+helper was not applied somewhere — fix it before committing. Also confirm no
+malformed `/blogsposts/`-style path appears (that is the no-trailing-slash
+concatenation bug):
+
+```bash
+grep -c 'blogsposts\|blogsabout\|blogsrss' dist/index.html dist/about/index.html dist/posts/hello-world/index.html
+```
+
+Expected: `0` for all three files.
+
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/layouts src/pages
-git commit -m "Add shared layout with SEO/OG tags, post page with view badge, about page"
+git add src/lib src/layouts src/pages
+git commit -m "Add base-path helper, shared layout with SEO/OG tags, post page, about page"
 ```
 
 ---
@@ -467,6 +542,7 @@ Create `src/pages/rss.xml.js`:
 ```js
 import rss from '@astrojs/rss';
 import { getCollection } from 'astro:content';
+import { withBase } from '../lib/url';
 
 export async function GET(context) {
   const posts = await getCollection('posts');
@@ -478,7 +554,10 @@ export async function GET(context) {
       title: post.data.title,
       description: post.data.description,
       pubDate: post.data.pubDate,
-      link: `/posts/${post.id}/`,
+      // withBase is required here: @astrojs/rss joins `link` onto `site`,
+      // and `site` is the bare origin, so an unprefixed path would emit
+      // https://thoughtlessnerd.github.io/posts/... (missing /blogs).
+      link: withBase(`/posts/${post.id}/`),
     })),
   });
 }
@@ -492,10 +571,11 @@ Create `public/robots.txt`:
 User-agent: *
 Allow: /
 
-Sitemap: https://yourusername.github.io/blogs/sitemap-index.xml
+Sitemap: https://thoughtlessnerd.github.io/blogs/sitemap-index.xml
 ```
 
-(Update the URL here when `astro.config.mjs`'s `site`/`base` are finalized in Task 5.)
+(This is the final URL — the deploy target is
+`https://thoughtlessnerd.github.io/blogs`.)
 
 - [ ] **Step 5: Build and verify**
 
@@ -509,6 +589,19 @@ grep -o '<title>[^<]*</title>' dist/rss.xml
 ```
 
 Expected output: `rss ok`, `sitemap ok`, and a title match containing `Math Proofs & Devlogs`.
+
+Then verify the feed and sitemap emit correct absolute URLs that include the
+`/blogs` base — a feed full of 404 links is worse than no feed:
+
+```bash
+grep -o '<link>[^<]*</link>' dist/rss.xml
+grep -oE 'https://[^<]*' dist/sitemap-0.xml | head
+```
+
+Expected: every RSS `<link>` reads
+`https://thoughtlessnerd.github.io/blogs/posts/<slug>/`, and the sitemap URLs
+likewise all contain `/blogs/`. A URL missing `/blogs/`, or containing
+`/blogsposts/`, is a defect — fix it before committing.
 
 - [ ] **Step 6: Commit**
 
@@ -527,7 +620,7 @@ git commit -m "Add RSS feed, sitemap, and robots.txt"
 - Modify: `public/robots.txt` (finalize sitemap URL to match)
 
 **Interfaces:**
-- Produces: automatic build+deploy to GitHub Pages on every push to `main`.
+- Produces: automatic build+deploy to GitHub Pages on every push to `master`.
 
 - [ ] **Step 1: Write the workflow**
 
@@ -538,7 +631,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -573,29 +666,47 @@ jobs:
         uses: actions/deploy-pages@v4
 ```
 
-- [ ] **Step 2: Create the GitHub repository and push**
+- [ ] **Step 2: Confirm the repository and remote (already done)**
 
-This step needs your input — create a **public** GitHub repository (e.g. named `blogs`), then:
+The public repo `thoughtlessnerd/blogs` already exists, `origin` is already
+configured, and the branch is `master`. Verify rather than re-create:
 
 ```bash
-git remote add origin https://github.com/<your-username>/<repo-name>.git
-git branch -M main
+git remote -v
+git branch --show-current
 ```
 
-Do not push yet — first finish Step 3 so the site builds with the correct URL.
+Expected: `origin` points at `https://github.com/thoughtlessnerd/blogs.git`
+and the current branch is `master`. Do not add a remote, do not rename the
+branch, and do not push yet — finish Step 3 first.
 
-- [ ] **Step 3: Finalize `site`/`base` and the sitemap URL**
+- [ ] **Step 3: Finalize `site` in `astro.config.mjs`**
 
-In `astro.config.mjs`, replace:
+Task 2 left a placeholder. In `astro.config.mjs`, replace:
 ```js
-site: 'https://yourusername.github.io',
-base: '/blogs',
+  // TODO before first deploy (Task 5): replace with your real GitHub Pages
+  // URL, e.g. site: 'https://yourusername.github.io', base: '/blogs'
+  site: 'https://yourusername.github.io',
+  base: '/blogs',
 ```
-with your actual GitHub username and repo name, e.g. `site: 'https://<your-username>.github.io'`, `base: '/<repo-name>'`.
+with the real value (and drop the now-stale TODO comment):
+```js
+  site: 'https://thoughtlessnerd.github.io',
+  base: '/blogs',
+```
 
-In `public/robots.txt`, update the `Sitemap:` line to match the same host/base.
+`base` is already correct — only `site` changes. `public/robots.txt` was
+already written with the final URL in Task 4, so it needs no change; confirm
+it reads `https://thoughtlessnerd.github.io/blogs/sitemap-index.xml`.
 
-Run `npm run build` again to confirm it still exits 0 after the change.
+Run `npm run build` and confirm it exits 0. Then re-confirm the absolute URLs
+now use the real host:
+
+```bash
+grep -o '<link>[^<]*</link>' dist/rss.xml | head -3
+```
+
+Expected: `https://thoughtlessnerd.github.io/blogs/posts/<slug>/`.
 
 - [ ] **Step 4: Enable GitHub Pages for Actions deployment**
 
@@ -604,12 +715,15 @@ In the GitHub repo's Settings → Pages, set "Source" to "GitHub Actions" (not "
 - [ ] **Step 5: Push and verify the deploy**
 
 ```bash
-git add astro.config.mjs public/robots.txt .github
+git add astro.config.mjs .github
 git commit -m "Add GitHub Actions deploy workflow, finalize site URL"
-git push -u origin main
+git push -u origin master
 ```
 
-Expected: in the GitHub repo's "Actions" tab, the "Deploy to GitHub Pages" workflow runs and completes with a green check. Visit the printed Pages URL and confirm the homepage loads with the "Hello, Proofs" post listed.
+Expected: in the GitHub repo's "Actions" tab, the "Deploy to GitHub Pages" workflow runs and completes with a green check. Then visit
+`https://thoughtlessnerd.github.io/blogs/` and confirm the homepage loads with
+the "Hello, Proofs" post listed, and that clicking through to the post works
+(this is the first real-world proof that the base-path handling is correct).
 
 ---
 
@@ -948,7 +1062,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { commitAndPush } from '../lib/git.js';
 
 describe('commitAndPush', () => {
-  it('adds, commits, and pushes to origin main', async () => {
+  it('adds, commits, and pushes to origin master', async () => {
     const git = {
       add: vi.fn().mockResolvedValue(undefined),
       commit: vi.fn().mockResolvedValue(undefined),
@@ -959,7 +1073,7 @@ describe('commitAndPush', () => {
 
     expect(git.add).toHaveBeenCalledWith(['a.md', 'b/']);
     expect(git.commit).toHaveBeenCalledWith('Publish: a');
-    expect(git.push).toHaveBeenCalledWith('origin', 'main');
+    expect(git.push).toHaveBeenCalledWith('origin', 'master');
   });
 });
 ```
@@ -984,7 +1098,7 @@ export function createGitClient(repoRoot) {
 export async function commitAndPush(git, { files, message }) {
   await git.add(files);
   await git.commit(message);
-  await git.push('origin', 'main');
+  await git.push('origin', 'master');
 }
 ```
 
@@ -1105,8 +1219,24 @@ git commit -m "Add save-draft/publish API endpoints with git commit+push"
 - Modify: `editor-tool/server.js`
 
 **Interfaces:**
-- Produces: `POST /api/upload/:slug` (multipart form field `file`) → `{ path: string }`, saving the file to `src/assets/posts/<slug>/<original-filename>`.
-- Consumes: `ASSETS_DIR` constant and `app` from Task 8's `server.js`.
+- Produces: `POST /api/upload/:slug` (multipart form field `file`) → `{ markdown: string }` — the ready-to-insert markdown/HTML snippet for the uploaded file.
+- Consumes: `ASSETS_DIR` and `PUBLIC_MEDIA_DIR` constants and `app` from Task 8's `server.js`.
+
+**Why images and videos are handled differently** (verified empirically on
+this project — do not "simplify" this into one path):
+
+- **Images** go to `src/assets/posts/<slug>/` and are referenced from the post
+  markdown by a path *relative to the markdown file*:
+  `../../assets/posts/<slug>/<file>`. Astro then processes them: a 10x10 PNG
+  became `<img ... width="10" height="10" loading="lazy" decoding="async"
+  src="/blogs/_astro/test.<hash>.webp">` — auto-converted to WebP, with
+  intrinsic dimensions (prevents layout shift) and the `/blogs` base path
+  injected automatically. That optimization and the automatic base handling
+  are why images must use this route; it directly serves the SEO goal.
+- **Videos** are NOT processed by Astro, so a `src/assets/...` path would not
+  resolve. They go to `public/media/<slug>/` and are referenced with a literal
+  absolute URL including the base: `/blogs/media/<slug>/<file>`. Files under
+  `public/` are copied verbatim into the build.
 
 - [ ] **Step 1: Add the upload route**
 
@@ -1116,13 +1246,31 @@ Modify `editor-tool/server.js` — add the `multer` import at the top:
 import multer from 'multer';
 ```
 
+Add the `public/media` path constant next to the existing `ASSETS_DIR`
+constant near the top of the file:
+
+```js
+const PUBLIC_MEDIA_DIR = path.join(REPO_ROOT, 'public/media');
+```
+
 Add this block before the `app.listen(...)` call at the bottom:
 
 ```js
+// Images are processed by Astro (optimized + base-path injected), so they
+// live in src/assets and are referenced relative to the markdown file.
+// Videos are not processed, so they live in public/ and are referenced by a
+// literal URL that must include the /blogs base path.
+const BASE_PATH = '/blogs';
+
+function isVideo(file) {
+  return file.mimetype.startsWith('video/');
+}
+
 const upload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
-      const dir = path.join(ASSETS_DIR, req.params.slug);
+      const root = isVideo(file) ? PUBLIC_MEDIA_DIR : ASSETS_DIR;
+      const dir = path.join(root, req.params.slug);
       fs.mkdirSync(dir, { recursive: true });
       cb(null, dir);
     },
@@ -1131,28 +1279,105 @@ const upload = multer({
 });
 
 app.post('/api/upload/:slug', upload.single('file'), (req, res) => {
-  res.json({ path: `/src/assets/posts/${req.params.slug}/${req.file.originalname}` });
+  const { slug } = req.params;
+  const name = req.file.originalname;
+  const markdown = isVideo(req.file)
+    ? `<video src="${BASE_PATH}/media/${slug}/${name}" controls></video>`
+    : `![${name}](../../assets/posts/${slug}/${name})`;
+  res.json({ markdown });
 });
 ```
 
-- [ ] **Step 2: Manually verify the upload endpoint**
+- [ ] **Step 2: Manually verify the upload endpoint for both media types**
+
+Use a real PNG (not fake bytes — Astro will later actually decode it):
 
 ```bash
 npm run write &
 sleep 1
-echo "fake image bytes" > /tmp/test-image.png
-curl -s -X POST http://localhost:5321/api/upload/test-draft -F "file=@/tmp/test-image.png"
+printf 'iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8DAwMDEwMDAwMAAAA4AAwHwYjkAAAAASUVORK5CYII=' | base64 -d > /tmp/test-image.png
+curl -s -X POST http://localhost:5321/api/upload/test-draft -F "file=@/tmp/test-image.png;type=image/png"
+echo
+printf 'notarealvideo' > /tmp/test-clip.mp4
+curl -s -X POST http://localhost:5321/api/upload/test-draft -F "file=@/tmp/test-clip.mp4;type=video/mp4"
 kill %1
 ```
 
-Expected: `{"path":"/src/assets/posts/test-draft/test-image.png"}` and `src/assets/posts/test-draft/test-image.png` exists on disk.
+Expected, in order:
+- `{"markdown":"![test-image.png](../../assets/posts/test-draft/test-image.png)"}`
+  and the file exists at `src/assets/posts/test-draft/test-image.png`.
+- `{"markdown":"<video src=\"/blogs/media/test-draft/test-clip.mp4\" controls></video>"}`
+  and the file exists at `public/media/test-draft/test-clip.mp4`.
 
-Clean up:
+Clean up both:
 ```bash
-rm -rf src/assets/posts/test-draft
+rm -rf src/assets/posts/test-draft public/media/test-draft
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Make `publish` stage uploaded media from BOTH locations**
+
+Task 8's publish handler only stages `ASSETS_DIR/<slug>`. Now that videos
+land in `public/media/<slug>`, publishing a post with a video would commit the
+markdown that references it but not the file itself — a broken video on the
+live site. In `editor-tool/server.js`, find this block in the
+`/api/publish/:slug` handler:
+
+```js
+    const filesToStage = [postPath];
+    const assetDir = path.join(ASSETS_DIR, slug);
+    if (fs.existsSync(assetDir)) filesToStage.push(assetDir);
+```
+
+and replace it with:
+
+```js
+    const filesToStage = [postPath];
+    for (const dir of [path.join(ASSETS_DIR, slug), path.join(PUBLIC_MEDIA_DIR, slug)]) {
+      if (fs.existsSync(dir)) filesToStage.push(dir);
+    }
+```
+
+- [ ] **Step 4: Verify both media directories get staged**
+
+```bash
+npm run write &
+sleep 1
+curl -s -X POST http://localhost:5321/api/drafts -H "Content-Type: application/json" -d '{"title":"Media Stage Test","description":"d","body":"b"}'
+echo
+printf 'iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8DAwMDEwMDAwMAAAA4AAwHwYjkAAAAASUVORK5CYII=' | base64 -d > /tmp/s.png
+printf 'x' > /tmp/s.mp4
+curl -s -X POST http://localhost:5321/api/upload/media-stage-test -F "file=@/tmp/s.png;type=image/png" >/dev/null
+curl -s -X POST http://localhost:5321/api/upload/media-stage-test -F "file=@/tmp/s.mp4;type=video/mp4" >/dev/null
+kill %1
+```
+
+Then confirm the publish commit contains all three paths. Note this performs
+a real commit; it will also attempt a push, which may fail if the deploy
+workflow is not yet set up — the commit is what matters here:
+
+```bash
+curl -s -X POST http://localhost:5321/api/publish/media-stage-test
+```
+
+Wait — the server was stopped above, so restart it before publishing. Correct
+order: start server, create draft, upload both files, publish, then stop.
+
+After publishing, verify:
+```bash
+git show --stat HEAD | grep -E "s\.png|s\.mp4|media-stage-test"
+```
+
+Expected: the commit includes `src/content/posts/media-stage-test.md`,
+`src/assets/posts/media-stage-test/s.png`, and
+`public/media/media-stage-test/s.mp4`.
+
+Then remove the test artifacts:
+```bash
+git rm -r --quiet src/content/posts/media-stage-test.md src/assets/posts/media-stage-test public/media/media-stage-test
+git commit -m "Remove media staging test artifacts"
+```
+
+- [ ] **Step 5: Commit**
 
 ```bash
 git add editor-tool/server.js editor-tool/package.json editor-tool/package-lock.json
@@ -1267,13 +1492,13 @@ document.getElementById('publish').addEventListener('click', async () => {
     alert('Save a draft first.');
     return;
   }
-  const confirmed = confirm(`Commit & push "${titleInput.value}" to main?`);
+  const confirmed = confirm(`Commit & push "${titleInput.value}" to master?`);
   if (!confirmed) return;
 
   const res = await fetch(`/api/publish/${currentSlug}`, { method: 'POST' });
   const data = await res.json();
   if (data.ok) {
-    alert('Published and pushed to main!');
+    alert('Published and pushed to master!');
   } else {
     alert(`Publish failed: ${data.error}`);
   }
@@ -1291,11 +1516,9 @@ dropzone.addEventListener('drop', async (e) => {
   formData.append('file', file);
   const res = await fetch(`/api/upload/${currentSlug}`, { method: 'POST', body: formData });
   const data = await res.json();
-  const isVideo = file.type.startsWith('video/');
-  const markdown = isVideo
-    ? `\n<video src="${data.path}" controls></video>\n`
-    : `\n![${file.name}](${data.path})\n`;
-  editor.value += markdown;
+  // The server decides the correct markdown for the media type — images get
+  // an Astro-processed relative path, videos a literal /blogs/media URL.
+  editor.value += `\n${data.markdown}\n`;
   renderPreview();
 });
 ```
@@ -1310,8 +1533,17 @@ Open `http://localhost:5321` in a browser and verify, in order:
 1. Typing in the textarea updates the preview pane live.
 2. Typing `$x^2$` in the textarea renders as a rendered math expression (not literal `$x^2$`) in the preview.
 3. Clicking "Save Draft" with a title filled in shows an alert with the slug, and `drafts/<slug>.md` appears on disk.
-4. Dragging an image file onto the editor area uploads it, inserts a `![...]` markdown line, and the preview shows the image.
-5. Clicking "Publish" shows a confirm dialog; cancelling it does nothing; confirming it shows a success or error alert, moves the file to `src/content/posts/`, and (if `origin` is configured per Task 5) pushes to `main`.
+4. Dragging an image file onto the editor area uploads it and inserts a
+   `![...](../../assets/posts/<slug>/<file>)` markdown line. **The image will
+   NOT render in the preview pane** — that path is relative to the post's
+   location in the Astro project, not to the editor server's document root,
+   and Astro's image processing is what resolves it at build time. A broken
+   image icon in the preview is expected and correct here; what you are
+   verifying is that the inserted markdown text is right. (Confirm the file
+   landed at `src/assets/posts/<slug>/<file>` on disk.) Dragging a video
+   inserts a `<video src="/blogs/media/...">` tag, which likewise will not
+   play in the preview.
+5. Clicking "Publish" shows a confirm dialog; cancelling it does nothing; confirming it shows a success or error alert, moves the file to `src/content/posts/`, and (if `origin` is configured per Task 5) pushes to `master`.
 
 Stop the server (Ctrl+C) when done. Clean up any test post/draft created during this check.
 
@@ -1357,7 +1589,7 @@ npm run write
 
 In the browser: write a short real test post (or a throwaway one you're fine deleting), save it as a draft, publish it, and confirm:
 1. The publish call succeeds in the UI.
-2. `git log -1` shows the publish commit, and it was pushed (check `git log origin/main -1` matches).
+2. `git log -1` shows the publish commit, and it was pushed (check `git log origin/master -1` matches).
 3. The GitHub Actions workflow runs and succeeds.
 4. The new post appears on the live site within a minute or two of the workflow finishing.
 
