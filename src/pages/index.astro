@@ -17,10 +17,13 @@ const posts = (await getCollection('posts')).sort(
       {posts.map((post) => (
         <li>
           <a href={withBase(`/posts/${post.id}/`)}>
-            <span class="post-list__title">{post.data.title}</span>
-            <time class="post-date" datetime={isoDate(post.data.pubDate)}>
-              {formatDate(post.data.pubDate)}
-            </time>
+            <span class="post-list__head">
+              <span class="post-list__title">{post.data.title}</span>
+              <time class="post-date" datetime={isoDate(post.data.pubDate)}>
+                {formatDate(post.data.pubDate)}
+              </time>
+            </span>
+            <span class="post-list__desc">{post.data.description}</span>
           </a>
         </li>
       ))}

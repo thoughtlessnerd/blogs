@@ -1,6 +1,7 @@
 ---
 import { withBase } from '../lib/url';
 import { GOATCOUNTER_CODE } from '../lib/config';
+import FlipName from '../components/FlipName.astro';
 import '../styles/global.css';
 
 interface Props {
@@ -43,7 +44,9 @@ const pageTitle = title === SITE_NAME ? title : `${title} — ${SITE_NAME}`;
   <body>
     <header class="site-header">
       <div class="site-header__inner">
-        <a class="site-title" href={withBase('/')}>Math Proofs</a>
+        <a class="site-title" href={withBase('/')} aria-label="ThoughtlessNerd — home">
+          <FlipName />
+        </a>
         <nav class="site-nav">
           <a href={withBase('/')}>Home</a>
           <a href={withBase('/about/')}>About</a>

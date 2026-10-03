@@ -1,0 +1,21 @@
+---
+// Cycles through the handles in the header. Pure CSS — no client JS, which
+// keeps the site fully static and the animation running before hydration
+// would ever have happened.
+//
+// The sizer is a hidden copy of the longest name. The visible names are
+// absolutely positioned, so without it the header would resize on every flip
+// and shove the nav around.
+const NAMES = ['ThoughtlessNerd', 'Abhay', 'ProNo0b', 'Billa'];
+const longest = NAMES.reduce((a, b) => (b.length > a.length ? b : a));
+const CYCLE_SECONDS = 10;
+---
+<span class="flip" aria-hidden="true">
+  <span class="flip__sizer">{longest}</span>
+  {NAMES.map((name, i) => (
+    <span
+      class="flip__item"
+      style={`animation-delay: ${(i * CYCLE_SECONDS) / NAMES.length}s`}
+    >{name}</span>
+  ))}
+</span>
