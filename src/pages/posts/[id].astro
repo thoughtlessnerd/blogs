@@ -1,0 +1,31 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts');
+  return posts.map((post) => ({
+    params: { id: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+<BaseLayout title={post.data.title} description={post.data.description}>
+  <article>
+    <h1>{post.data.title}</h1>
+    <time datetime={post.data.pubDate.toISOString()}>
+      {post.data.pubDate.toDateString()}
+    </time>
+    <Content />
+    <p>
+      <img
+        src={`https://visitor-badge.laobi.icu/badge?page_id=math-proofs-blog.${post.id}`}
+        alt="view count"
+        loading="lazy"
+      />
+    </p>
+  </article>
+</BaseLayout>

@@ -1,27 +1,22 @@
 ---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { withBase } from '../lib/url';
 import { getCollection } from 'astro:content';
 
 const posts = (await getCollection('posts')).sort(
   (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
 );
 ---
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Math Proofs & Devlogs</title>
-  </head>
-  <body>
-    <h1>Posts</h1>
-    <ul>
-      {posts.map((post) => (
-        <li>
-          <a href={`/posts/${post.id}/`}>{post.data.title}</a>
-          — <time datetime={post.data.pubDate.toISOString()}>
-            {post.data.pubDate.toDateString()}
-          </time>
-        </li>
-      ))}
-    </ul>
-  </body>
-</html>
+<BaseLayout title="Math Proofs & Devlogs" description="Math proofs done for fun, and the occasional devlog.">
+  <h1>Posts</h1>
+  <ul>
+    {posts.map((post) => (
+      <li>
+        <a href={withBase(`/posts/${post.id}/`)}>{post.data.title}</a>
+        — <time datetime={post.data.pubDate.toISOString()}>
+          {post.data.pubDate.toDateString()}
+        </time>
+      </li>
+    ))}
+  </ul>
+</BaseLayout>

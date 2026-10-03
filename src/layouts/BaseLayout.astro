@@ -1,0 +1,43 @@
+---
+import { withBase } from '../lib/url';
+
+interface Props {
+  title: string;
+  description: string;
+}
+const { title, description } = Astro.props;
+// Astro.url.pathname already includes the base path — do NOT wrap in withBase.
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <link rel="alternate" type="application/rss+xml" title="RSS" href={withBase('/rss.xml')} />
+    <!-- Sign up free at https://www.goatcounter.com and replace YOUR_GOATCOUNTER_CODE -->
+    <script
+      data-goatcounter="https://YOUR_GOATCOUNTER_CODE.goatcounter.com/count"
+      async
+      src="//gc.zgo.at/count.js"></script>
+  </head>
+  <body>
+    <nav>
+      <a href={withBase('/')}>Home</a>
+      <a href={withBase('/about/')}>About</a>
+    </nav>
+    <main>
+      <slot />
+    </main>
+  </body>
+</html>
