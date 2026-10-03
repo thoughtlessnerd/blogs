@@ -12,7 +12,7 @@
 </head>
 <body>
   <header>
-    <select id="draftPicker" title="Open an existing draft">
+    <select id="picker" title="Open a draft or a published post">
       <option value="">— new post —</option>
     </select>
     <input id="title" placeholder="Post title" />
@@ -21,8 +21,11 @@
       <option value="math">math</option>
       <option value="devlog">devlog</option>
     </select>
+    <span id="status" class="status"></span>
     <button id="saveDraft">Save Draft</button>
     <button id="publish">Publish</button>
+    <button id="update" hidden>Update &amp; Push</button>
+    <button id="delete" class="danger" hidden>Delete</button>
   </header>
   <main id="dropzone">
     <textarea id="editor" placeholder="Write markdown here..."></textarea>
