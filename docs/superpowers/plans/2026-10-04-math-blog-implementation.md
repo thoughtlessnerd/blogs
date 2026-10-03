@@ -131,8 +131,16 @@ git commit -m "Scaffold Astro project"
 - [ ] **Step 1: Install markdown/math dependencies**
 
 ```bash
-npm install remark-math rehype-mathjax
+npm install @astrojs/markdown-remark remark-math rehype-mathjax
 ```
+
+`@astrojs/markdown-remark` is required explicitly: as of Astro 7, "Sätteri"
+is the default markdown processor and it has **no** math support, so
+`markdown.remarkPlugins` / `markdown.rehypePlugins` (the unified pipeline
+that `remark-math` and `rehype-mathjax` plug into) only run when this
+first-party Astro package is installed. Without it, `astro build` fails with
+a config validation error naming this exact package. It is free and
+first-party — no constraint concerns.
 
 - [ ] **Step 2: Configure math rendering in `astro.config.mjs`**
 
