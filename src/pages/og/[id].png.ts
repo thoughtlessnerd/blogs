@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { getCollection } from 'astro:content';
 import { renderOgImage } from '../../lib/og';
 import { formatDate } from '../../lib/date';
+import { AUTHOR } from '../../lib/config';
 
 export async function getStaticPaths() {
   const posts = await getCollection('posts');
@@ -13,7 +14,7 @@ export const GET: APIRoute = async ({ props }) => {
 
   const png = await renderOgImage({
     title: post.data.title,
-    subtitle: formatDate(post.data.pubDate),
+    subtitle: `${formatDate(post.data.pubDate)} · ${AUTHOR}`,
   });
 
   return new Response(new Uint8Array(png), {

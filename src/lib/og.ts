@@ -2,11 +2,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
-import { AUTHOR } from './config';
 
 // 1200x630 is the size every social platform crops against.
 const WIDTH = 1200;
 const HEIGHT = 630;
+
+// Platforms do not all show the full 1200x630. WhatsApp (and several mobile
+// clients) crop toward a square taken from the middle, which lops off anything
+// hugging the left or right edge — a left-aligned "Hello, Proofs" showed up as
+// "Proofs". A centred square crop is HEIGHT wide, so content kept within that
+// width survives it; long titles wrap rather than run into the crop.
+const SAFE_WIDTH = HEIGHT;
 
 // Resolved from the project root rather than import.meta.url — this module is
 // bundled before it runs, so a module-relative path lands in the build output.
@@ -15,6 +21,17 @@ const fonts = [
   { name: 'Inter', data: fs.readFileSync(path.join(fontDir, 'Inter-Regular.ttf')), weight: 400 as const, style: 'normal' as const },
   { name: 'Inter', data: fs.readFileSync(path.join(fontDir, 'Inter-SemiBold.ttf')), weight: 600 as const, style: 'normal' as const },
 ];
+
+/**
+ * Titles are set as large as they can be without overflowing. The thresholds
+ * are character counts rather than measured width — close enough at these
+ * sizes, and it avoids a text-measurement pass.
+ */
+function titleSize(title: string): number {
+  if (title.length <= 28) return 88;
+  if (title.length <= 55) return 70;
+  return 54;
+}
 
 /**
  * Renders a social preview card as a PNG. Runs at build time only — nothing
@@ -30,42 +47,97 @@ export async function renderOgImage({ title, subtitle }: { title: string; subtit
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between',
+          alignItems: 'center',
+          justifyContent: 'center',
           backgroundColor: '#0f1115',
-          // Echoes the glow behind the site itself.
-          backgroundImage: 'radial-gradient(900px 480px at 50% -10%, #1b2334 0%, #0f1115 70%)',
-          padding: '72px',
+          // Stronger than the site's own glow: these cards are viewed against
+          // black chat and feed backgrounds, where a near-black card has no
+          // edges at all and reads as a loading failure.
+          backgroundImage:
+            'radial-gradient(1100px 620px at 50% -15%, #273553 0%, #141926 45%, #0f1115 75%)',
           fontFamily: 'Inter',
         },
         children: [
           {
             type: 'div',
             props: {
-              style: { display: 'flex', fontSize: 28, letterSpacing: 4, color: '#7aa2f7', fontWeight: 600 },
-              children: 'THOUGHTLESSNERD',
+              style: {
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                maxWidth: SAFE_WIDTH,
+              },
+              children: [
+                {
+                  type: 'div',
+                  props: {
+                    style: {
+                      display: 'flex',
+                      fontSize: 30,
+                      letterSpacing: 5,
+                      color: '#7aa2f7',
+                      fontWeight: 600,
+                    },
+                    children: 'THOUGHTLESSNERD',
+                  },
+                },
+                {
+                  type: 'div',
+                  props: {
+                    style: {
+                      display: 'flex',
+                      width: 72,
+                      height: 4,
+                      marginTop: 28,
+                      marginBottom: 36,
+                      backgroundColor: '#7aa2f7',
+                      borderRadius: 2,
+                    },
+                  },
+                },
+                {
+                  type: 'div',
+                  props: {
+                    style: {
+                      display: 'flex',
+                      fontSize: titleSize(title),
+                      lineHeight: 1.2,
+                      color: '#f2f4f7',
+                      fontWeight: 600,
+                    },
+                    children: title,
+                  },
+                },
+                {
+                  type: 'div',
+                  props: {
+                    style: {
+                      display: 'flex',
+                      marginTop: 36,
+                      fontSize: 28,
+                      color: '#9aa3af',
+                    },
+                    children: subtitle,
+                  },
+                },
+              ],
             },
           },
+          // Anchors the card against a dark feed and carries the accent colour
+          // even when the preview is shrunk to an unreadable thumbnail.
           {
             type: 'div',
             props: {
               style: {
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                width: WIDTH,
+                height: 10,
                 display: 'flex',
-                fontSize: title.length > 60 ? 60 : 76,
-                lineHeight: 1.15,
-                color: '#e6e8eb',
-                fontWeight: 600,
+                backgroundImage: 'linear-gradient(90deg, #2563eb 0%, #7aa2f7 100%)',
               },
-              children: title,
-            },
-          },
-          {
-            type: 'div',
-            props: {
-              style: { display: 'flex', justifyContent: 'space-between', fontSize: 26, color: '#9aa3af' },
-              children: [
-                { type: 'div', props: { style: { display: 'flex' }, children: subtitle } },
-                { type: 'div', props: { style: { display: 'flex' }, children: AUTHOR } },
-              ],
             },
           },
         ],
