@@ -11,8 +11,10 @@ interface Props {
   description: string;
   /** schema.org JSON-LD for this page, if it has any. */
   jsonLd?: Record<string, unknown>;
+  /** Root-relative path to this page's social card; defaults to the site card. */
+  ogImage?: string;
 }
-const { title, description, jsonLd } = Astro.props;
+const { title, description, jsonLd, ogImage } = Astro.props;
 // Astro.url.pathname already includes the base path — do NOT wrap in withBase.
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
@@ -28,6 +30,10 @@ const pageTitle = title === SITE_NAME ? title : `${title} — ${SITE_NAME}`;
 // bundled before it runs, so a path relative to the module lands somewhere
 // inside the build output and the check silently never fires.
 const hasResume = fs.existsSync(path.join(process.cwd(), 'public', 'resume.pdf'));
+
+// og:image must be an absolute URL — relative paths are ignored by every
+// major platform's crawler.
+const ogImageURL = new URL(withBase(ogImage ?? '/og/site.png'), Astro.site).href;
 
 const currentYear = new Date().getFullYear();
 const copyrightYears =
@@ -47,9 +53,14 @@ const copyrightYears =
     <meta property="og:description" content={description} />
     <meta property="og:type" content="article" />
     <meta property="og:url" content={canonicalURL} />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content={ogImageURL} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={title} />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageURL} />
     <link rel="alternate" type="application/rss+xml" title="RSS" href={withBase('/rss.xml')} />
     {jsonLd && (
       <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} is:inline />

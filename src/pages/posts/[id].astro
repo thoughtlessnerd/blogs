@@ -28,7 +28,12 @@ const jsonLd = {
   url: canonical,
 };
 ---
-<BaseLayout title={post.data.title} description={post.data.description} jsonLd={jsonLd}>
+<BaseLayout
+  title={post.data.title}
+  description={post.data.description}
+  jsonLd={jsonLd}
+  ogImage={`/og/${post.id}.png`}
+>
   <article>
     <header class="post-header">
       <h1>{post.data.title}</h1>
