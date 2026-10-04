@@ -156,6 +156,13 @@ body {
   color: var(--accent);
 }
 
+.site-nav a[aria-current='page'] {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 0.35em;
+}
+
 .site-main {
   padding-block: 3rem 4rem;
   flex: 1 0 auto;

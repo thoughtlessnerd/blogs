@@ -200,6 +200,11 @@ body {
   border-bottom-color: var(--accent);
 }
 
+.site-nav a[aria-current='page'] {
+  color: var(--fg);
+  border-bottom-color: var(--accent);
+}
+
 .site-main {
   padding-block: 3.5rem 4rem;
   flex: 1 0 auto;
