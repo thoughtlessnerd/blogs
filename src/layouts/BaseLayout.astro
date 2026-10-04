@@ -67,7 +67,9 @@ const copyrightYears =
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
-    <meta name="color-scheme" content="light dark" />
+    <!-- Dark only: the site has no light palette, so advertising one would
+         have the browser style native controls for a theme that never comes. -->
+    <meta name="color-scheme" content="dark" />
     <meta property="og:site_name" content={SITE_NAME} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
