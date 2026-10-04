@@ -27,14 +27,19 @@ lets divide these elements into $k(=3)$ groups, there are multiple ways to do it
 
 ![* | * * | * *](../../assets/posts/stars-bars-theorem/image-1.png)
 
-$$ \text{fig - 1.2} $$
+$$ \text{fig - 1.2, groups formed (1,2,2)} $$
 
 $$\text{or}$$
 
 ![| * * * * | *](../../assets/posts/stars-bars-theorem/image-2.png)
 
-$$ \text{fig - 1.3} $$
+$$ \text{fig - 1.3, groups formed (0,4,1)} $$
 
 there are many ways to group these elements into $k(=3)$ groups. in this visualisation, it takes exactly $k-1$ lines (bars) to separate all the elements into a total of $k$ groups.
 
-then each segment is a group, in this example, in $\text{fig 1.2}$ groups are of the form $(1,2,2)$. in $\text{fig 1.3}$ groups are of the form $(0,4,1)$.
+this can also be seen as the number of integer solutions for the equation:
+
+$$ x_1 + x_2 + ... + x_k = n$$
+$$ x_i \\in (0,n)$$
+
+Let's solve this where each group will have atleast 1 element i.e $ x_i \\in (1, n)$. 
