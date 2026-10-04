@@ -2,6 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { formatDate, isoDate } from '../../lib/date';
+import { withBase } from '../../lib/url';
 import { AUTHOR } from '../../lib/config';
 
 export async function getStaticPaths() {
@@ -37,20 +38,23 @@ const jsonLd = {
   <article>
     <header class="post-header">
       <h1>{post.data.title}</h1>
-      <time class="post-meta" datetime={isoDate(post.data.pubDate)}>
-        {formatDate(post.data.pubDate)}
-      </time>
+      <div class="post-meta">
+        <time datetime={isoDate(post.data.pubDate)}>
+          {formatDate(post.data.pubDate)}
+        </time>
+        <img
+          class="view-badge"
+          src={`https://visitor-badge.laobi.icu/badge?page_id=math-proofs-blog.${post.id}`}
+          alt="view count"
+          loading="lazy"
+        />
+      </div>
     </header>
     <div class="post-body">
       <Content />
     </div>
     <footer class="post-footer">
-      <img
-        class="view-badge"
-        src={`https://visitor-badge.laobi.icu/badge?page_id=math-proofs-blog.${post.id}`}
-        alt="view count"
-        loading="lazy"
-      />
+      <a class="post-back" href={withBase('/')}>← All posts</a>
     </footer>
   </article>
 </BaseLayout>
