@@ -32,21 +32,29 @@ function classesOf(node) {
 function promote(node) {
   if (!node || !Array.isArray(node.children)) return;
 
-  node.children = node.children.map((child) => {
+  node.children = node.children.flatMap((child) => {
     promote(child);
     if (child.type !== 'element' || child.tagName !== 'p') return child;
 
     const content = child.children.filter(
       (c) => !(c.type === 'text' && c.value.trim() === '')
     );
-    if (content.length !== 1 || content[0].type !== 'element') return child;
-    if (!classesOf(content[0]).includes('math-inline')) return child;
+    if (content.length === 0) return child;
+
+    // Every meaningful child has to be maths. Two `$$...$$` written on
+    // consecutive lines land in one paragraph, so handling only the
+    // single-child case left both of them inline and sharing a line — which is
+    // exactly what the first version of this did.
+    const allMaths = content.every(
+      (c) => c.type === 'element' && classesOf(c).includes('math-inline')
+    );
+    if (!allMaths) return child;
 
     // Replaces the paragraph outright: a div cannot live inside a <p>.
-    return {
-      ...content[0],
+    return content.map((c) => ({
+      ...c,
       tagName: 'div',
-      properties: { ...content[0].properties, className: ['math', 'math-display'] },
-    };
+      properties: { ...c.properties, className: ['math', 'math-display'] },
+    }));
   });
 }

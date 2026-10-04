@@ -40,8 +40,27 @@ function applyImageSizes(root) {
   }
 }
 
+// Maths is lifted out before marked runs and put back afterwards.
+//
+// Without this the preview quietly lies: marked applies markdown escaping
+// inside the maths, so a doubled backslash becomes a single one and "\in"
+// previews as the correct symbol. Astro hands the maths to MathJax verbatim,
+// where "\\" is a line break and the rest renders as the letters i and n. The
+// author then sees a symbol here and gibberish on the published page.
+const MATH_SPAN = /\$\$[\s\S]*?\$\$|\$[^$\n]*?\$/g;
+
 function renderPreview() {
-  preview.innerHTML = marked.parse(editor.value);
+  const maths = [];
+  const stashed = editor.value.replace(MATH_SPAN, (m) => {
+    maths.push(m);
+    return `@@MATH${maths.length - 1}@@`;
+  });
+
+  const html = marked
+    .parse(stashed)
+    .replace(/@@MATH(\d+)@@/g, (_, i) => maths[Number(i)] ?? '');
+
+  preview.innerHTML = html;
   applyImageSizes(preview);
   if (window.MathJax?.typesetPromise) window.MathJax.typesetPromise([preview]);
 }

@@ -40,6 +40,6 @@ there are many ways to group these elements into $k(=3)$ groups. in this visuali
 this can also be seen as the number of integer solutions for the equation:
 
 $$ x_1 + x_2 + ... + x_k = n$$
-$$ x_i \\in (0,n)$$
+$$ x_i \in (0,n)$$
 
-Let's solve this where each group will have atleast 1 element i.e $ x_i \\in (1, n)$. 
+Let's solve this where each group will have atleast 1 element i.e $ x_i \in (1, n)$. 
