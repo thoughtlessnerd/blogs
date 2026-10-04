@@ -89,6 +89,13 @@ export function deletePost({ postsDir, slug }) {
   return filePath;
 }
 
+export function deleteDraft({ draftsDir, slug }) {
+  const filePath = path.join(draftsDir, `${slug}.md`);
+  if (!fs.existsSync(filePath)) throw new Error(`Draft "${slug}" not found`);
+  fs.unlinkSync(filePath);
+  return filePath;
+}
+
 // --- slug collisions ---------------------------------------------------
 
 // Titles normalise aggressively — "Test", "test" and "Test!" all slugify to

@@ -5,6 +5,11 @@ header input { flex: 1; padding: 0.4rem; }
 #editor, #preview { flex: 1; padding: 1rem; overflow-y: auto; box-sizing: border-box; }
 #editor { border: none; resize: none; font-family: ui-monospace, monospace; font-size: 1rem; }
 #preview { border-left: 1px solid #ccc; }
+
+/* A screenshot is usually wider than this pane, and without a cap it pushes
+   the preview sideways instead of scaling down. */
+#preview img,
+#preview video { max-width: 100%; height: auto; display: block; margin: 0.75rem 0; }
 #dropzone.dragging { outline: 2px dashed #4a90d9; outline-offset: -4px; }
 
 .status { font-size: 0.85rem; color: #555; align-self: center; min-width: 12rem; }

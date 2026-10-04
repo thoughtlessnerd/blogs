@@ -7,6 +7,8 @@ const preview = document.getElementById('preview');
 const dropzone = document.getElementById('dropzone');
 const statusEl = document.getElementById('status');
 
+const mediaInput = document.getElementById('mediaInput');
+const addMediaBtn = document.getElementById('addMedia');
 const saveDraftBtn = document.getElementById('saveDraft');
 const publishBtn = document.getElementById('publish');
 const updateBtn = document.getElementById('update');
@@ -35,7 +37,8 @@ function applyMode(next) {
   saveDraftBtn.hidden = published;
   publishBtn.hidden = published;
   updateBtn.hidden = !published;
-  deleteBtn.hidden = !published;
+  // Drafts are deletable too; only an unsaved new post has nothing to remove.
+  deleteBtn.hidden = next === 'new';
 }
 
 editor.addEventListener('input', renderPreview);
@@ -96,7 +99,7 @@ picker.addEventListener('change', async () => {
   load(await res.json());
 });
 
-saveDraftBtn.addEventListener('click', async () => {
+async function saveDraftNow() {
   const res = await fetch('/api/drafts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -121,7 +124,9 @@ saveDraftBtn.addEventListener('click', async () => {
       ? `Saved as "${data.slug}" — "${data.renamedFrom}" was taken.`
       : `Draft saved: ${data.slug}`
   );
-});
+}
+
+saveDraftBtn.addEventListener('click', saveDraftNow);
 
 publishBtn.addEventListener('click', async () => {
   if (!currentSlug) return setStatus('Save a draft first.', true);
@@ -173,16 +178,87 @@ updateBtn.addEventListener('click', async () => {
 });
 
 deleteBtn.addEventListener('click', async () => {
-  if (!confirm(`Unpublish "${titleInput.value}"? This removes it from the live site.`)) return;
+  const isDraft = mode === 'draft';
 
-  const res = await fetch(`/api/posts/${currentSlug}`, { method: 'DELETE' });
+  // Worth distinguishing: an unpublished post still exists in git history, but
+  // a draft is gitignored, so deleting one really is the end of it.
+  const question = isDraft
+    ? `Delete draft "${titleInput.value}"? Drafts are not in git, so this cannot be undone.`
+    : `Unpublish "${titleInput.value}"? This removes it from the live site.`;
+  if (!confirm(question)) return;
+
+  const url = isDraft ? `/api/drafts/${currentSlug}` : `/api/posts/${currentSlug}`;
+  const res = await fetch(url, { method: 'DELETE' });
   const data = await res.json();
   if (!res.ok) return setStatus(data.error, true);
 
   clearEditor();
   await refreshPicker();
-  setStatus('Unpublished and pushed to master.');
+  setStatus(isDraft ? 'Draft deleted.' : 'Unpublished and pushed to master.');
 });
+
+/**
+ * Media is stored in a folder named after the slug, so a slug has to exist.
+ * Rather than refusing the drop and sending the writer off to press Save
+ * Draft, save one for them. A title is the only thing that cannot be invented.
+ */
+async function ensureSlug() {
+  if (currentSlug) return currentSlug;
+  if (!titleInput.value.trim()) {
+    setStatus('Give the post a title first — it decides where media is stored.', true);
+    return null;
+  }
+  await saveDraftNow();
+  return currentSlug;
+}
+
+/** Inserts at the caret rather than appending, so media lands where you are. */
+function insertAtCursor(text) {
+  const start = editor.selectionStart ?? editor.value.length;
+  const end = editor.selectionEnd ?? editor.value.length;
+  const before = editor.value.slice(0, start);
+  const after = editor.value.slice(end);
+  const lead = before.length > 0 && !before.endsWith('\n') ? '\n' : '';
+  const block = lead + text + '\n';
+  editor.value = before + block + after;
+  const caret = (before + block).length;
+  editor.setSelectionRange(caret, caret);
+  editor.focus();
+  renderPreview();
+}
+
+async function uploadFiles(files) {
+  const list = [...files].filter((f) => f.type.startsWith('image/') || f.type.startsWith('video/'));
+  if (list.length === 0) return;
+
+  const slug = await ensureSlug();
+  if (!slug) return;
+
+  for (const [i, file] of list.entries()) {
+    const counter = list.length > 1 ? ` (${i + 1}/${list.length})` : '';
+    setStatus(`Uploading ${file.name || 'file'}${counter}…`);
+
+    const formData = new FormData();
+    // A pasted screenshot arrives as a nameless blob, so give it a name.
+    const ext = (file.type.split('/')[1] || 'png').split('+')[0];
+    formData.append('file', file, file.name || `pasted-${Date.now()}.${ext}`);
+
+    let data;
+    try {
+      const res = await fetch(`/api/upload/${slug}`, { method: 'POST', body: formData });
+      data = await res.json();
+      if (!res.ok) return setStatus(data.error ?? 'Upload failed', true);
+    } catch {
+      return setStatus('Upload failed — is the editor server still running?', true);
+    }
+
+    // The server decides the markdown for the media type: images get an
+    // Astro-processed relative path, videos a literal /blogs/media URL.
+    insertAtCursor(data.markdown);
+  }
+
+  setStatus(list.length === 1 ? 'Media added.' : `${list.length} files added.`);
+}
 
 dropzone.addEventListener('dragover', (e) => {
   e.preventDefault();
@@ -192,20 +268,27 @@ dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragging
 dropzone.addEventListener('drop', async (e) => {
   e.preventDefault();
   dropzone.classList.remove('dragging');
-  if (!currentSlug) return setStatus('Save a draft first so there is a place to put media.', true);
+  await uploadFiles(e.dataTransfer.files);
+});
 
-  const file = e.dataTransfer.files[0];
-  if (!file) return;
-  const formData = new FormData();
-  formData.append('file', file);
-  const res = await fetch(`/api/upload/${currentSlug}`, { method: 'POST', body: formData });
-  const data = await res.json();
-  if (!res.ok) return setStatus(data.error ?? 'Upload failed', true);
+// A screenshot on the clipboard arrives as a file item alongside the text
+// flavours, so only swallow the paste when a file is actually present —
+// otherwise ordinary text pasting would stop working.
+editor.addEventListener('paste', async (e) => {
+  const files = [...(e.clipboardData?.items ?? [])]
+    .filter((item) => item.kind === 'file')
+    .map((item) => item.getAsFile())
+    .filter(Boolean);
+  if (files.length === 0) return;
+  e.preventDefault();
+  await uploadFiles(files);
+});
 
-  // The server decides the correct markdown for the media type — images get
-  // an Astro-processed relative path, videos a literal /blogs/media URL.
-  editor.value += `\n${data.markdown}\n`;
-  renderPreview();
+addMediaBtn.addEventListener('click', () => mediaInput.click());
+mediaInput.addEventListener('change', async () => {
+  await uploadFiles(mediaInput.files);
+  // Cleared so picking the same file twice still fires a change event.
+  mediaInput.value = '';
 });
 
 applyMode('new');
