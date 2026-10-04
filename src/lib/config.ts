@@ -26,4 +26,4 @@ export const SOCIALS = [
 // here. Sign up free at https://www.goatcounter.com, then put your code here.
 //
 // While this is empty, no analytics script is emitted at all.
-export const GOATCOUNTER_CODE = '';
+export const GOATCOUNTER_CODE = 'thoughtlessnerd';
