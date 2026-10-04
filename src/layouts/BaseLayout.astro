@@ -4,6 +4,7 @@ import path from 'node:path';
 import { withBase } from '../lib/url';
 import { AUTHOR, SITE_START_YEAR, GOATCOUNTER_CODE } from '../lib/config';
 import FlipName from '../components/FlipName.astro';
+import Backdrop from '../components/Backdrop.astro';
 import '../styles/journal.css';
 
 interface Props {
@@ -73,6 +74,7 @@ const copyrightYears =
     )}
   </head>
   <body>
+    <Backdrop />
     <header class="site-header">
       <div class="site-header__inner">
         <a class="site-title" href={withBase('/')} aria-label="ThoughtlessNerd — home">

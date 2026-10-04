@@ -1,0 +1,150 @@
+---
+/**
+ * A very quiet field of drifting motes behind the page — dust caught in light
+ * rather than a particle network, which would fight the paper feel.
+ *
+ * Rules it holds to, because this sits behind text people are trying to read:
+ *   - never above the content, never catches a click
+ *   - stops entirely under prefers-reduced-motion
+ *   - stops while the tab is hidden, so it costs nothing in the background
+ *   - takes its colour from the theme, and follows a light/dark switch
+ */
+---
+<canvas id="backdrop" aria-hidden="true"></canvas>
+
+<style>
+  #backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+</style>
+
+<script>
+  const canvas = document.getElementById('backdrop') as HTMLCanvasElement | null;
+  const ctx = canvas?.getContext('2d');
+
+  if (canvas && ctx) {
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    // Sparse by design. Density is per-area so a wide monitor does not end up
+    // emptier than a laptop, and the cap keeps a 4K screen from drawing
+    // hundreds of them.
+    const AREA_PER_MOTE = 26000;
+    const MAX_MOTES = 70;
+
+    let motes: { x: number; y: number; r: number; vx: number; vy: number; a: number; phase: number }[] = [];
+    let width = 0;
+    let height = 0;
+    let colour = '255, 255, 255';
+    let frame = 0;
+
+    /** Reads --fg and returns it as "r, g, b" so alpha can be varied per mote. */
+    function themeColour(): string {
+      const raw = getComputedStyle(document.documentElement).getPropertyValue('--fg').trim();
+      const hex = raw.replace('#', '');
+      if (hex.length !== 6) return '255, 255, 255';
+      const n = parseInt(hex, 16);
+      return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+    }
+
+    function build() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // Measured off the element, not the window: a page that initialises
+      // while the window reports no size — a hidden tab, a background render,
+      // mid-orientation-change — would otherwise size the canvas to zero and
+      // stay blank forever, since no resize event ever follows.
+      width = canvas.clientWidth || window.innerWidth;
+      height = canvas.clientHeight || window.innerHeight;
+      if (!width || !height) return;
+
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const count = Math.min(MAX_MOTES, Math.round((width * height) / AREA_PER_MOTE));
+      motes = Array.from({ length: count }, () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        r: 0.6 + Math.random() * 1.1,
+        // Slow enough that the movement is felt rather than watched.
+        vx: (Math.random() - 0.5) * 0.08,
+        vy: (Math.random() - 0.5) * 0.08,
+        a: 0.05 + Math.random() * 0.13,
+        phase: Math.random() * Math.PI * 2,
+      }));
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+      frame += 1;
+      for (const m of motes) {
+        m.x += m.vx;
+        m.y += m.vy;
+
+        // Wrap rather than bounce: a mote reversing at an invisible wall reads
+        // as a glitch, drifting off one edge and back in the other does not.
+        if (m.x < -5) m.x = width + 5;
+        if (m.x > width + 5) m.x = -5;
+        if (m.y < -5) m.y = height + 5;
+        if (m.y > height + 5) m.y = -5;
+
+        // A long, shallow breath so the field never looks like a static dot
+        // pattern, well under the rate that would register as blinking.
+        const pulse = 0.78 + 0.22 * Math.sin(frame * 0.004 + m.phase);
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${colour}, ${m.a * pulse})`;
+        ctx.fill();
+      }
+      handle = requestAnimationFrame(draw);
+    }
+
+    let handle = 0;
+
+    function start() {
+      if (handle || reduceMotion.matches || document.hidden) return;
+      if (!width || !height || motes.length === 0) return;
+      handle = requestAnimationFrame(draw);
+    }
+
+    function stop() {
+      if (!handle) return;
+      cancelAnimationFrame(handle);
+      handle = 0;
+    }
+
+    // Watching the canvas rather than the window also catches the moment it
+    // first gains a size, which is when a zero-sized start has to recover.
+    let resizeTimer = 0;
+    new ResizeObserver(() => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        build();
+        start();
+      }, 150);
+    }).observe(canvas);
+
+    document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
+
+    reduceMotion.addEventListener('change', () => {
+      if (reduceMotion.matches) {
+        stop();
+        ctx.clearRect(0, 0, width, height);
+      } else {
+        start();
+      }
+    });
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      colour = themeColour();
+    });
+
+    colour = themeColour();
+    build();
+    start();
+  }
+</script>
