@@ -1,0 +1,250 @@
+---
+/**
+ * Client-side search over the build-time index at /search-index.json.
+ *
+ * The page it sits on must wrap its normal post listing in #post-groups —
+ * that block is hidden while a query is active and restored when the field
+ * is cleared.
+ *
+ * The form starts hidden and is revealed by script, so a visitor without
+ * JavaScript sees the ordinary post list rather than a box that does nothing.
+ */
+---
+<form class="search" role="search" id="search-form" hidden>
+  <label class="search__label" for="search-input">Search posts</label>
+  <input
+    class="search__input"
+    id="search-input"
+    type="search"
+    name="q"
+    placeholder="Search posts…"
+    autocomplete="off"
+    spellcheck="false"
+  />
+</form>
+
+<div class="search-results" id="search-results" hidden aria-live="polite"></div>
+
+<script>
+  const form = document.getElementById('search-form') as HTMLFormElement | null;
+  const input = document.getElementById('search-input') as HTMLInputElement | null;
+  const results = document.getElementById('search-results');
+  const groups = document.getElementById('post-groups');
+
+  if (form && input && results) {
+    // Only now does the field become usable, so it never appears inert.
+    form.hidden = false;
+    form.addEventListener('submit', (e) => e.preventDefault());
+
+    const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+    type Entry = {
+      id: string;
+      title: string;
+      description: string;
+      date: string;
+      text: string;
+      _title?: string;
+      _desc?: string;
+      _text?: string;
+    };
+
+    let index: Entry[] | null = null;
+    let loading: Promise<Entry[]> | null = null;
+
+    /** Fetched on first use, not on page load — search costs nothing until asked for. */
+    function loadIndex(): Promise<Entry[]> {
+      if (index) return Promise.resolve(index);
+      if (!loading) {
+        loading = fetch(`${BASE}/search-index.json`)
+          .then((r) => r.json())
+          .then((data: Entry[]) => {
+            // Lowercased once here rather than on every keystroke.
+            for (const e of data) {
+              e._title = e.title.toLowerCase();
+              e._desc = (e.description ?? '').toLowerCase();
+              e._text = e.text.toLowerCase();
+            }
+            index = data;
+            return data;
+          })
+          .catch(() => {
+            loading = null;
+            return [];
+          });
+      }
+      return loading;
+    }
+
+    function score(entry: Entry, terms: string[]): number {
+      let total = 0;
+      for (const term of terms) {
+        const inTitle = entry._title!.includes(term);
+        const inDesc = entry._desc!.includes(term);
+        const inText = entry._text!.includes(term);
+        // Every term has to land somewhere, so adding a word narrows the
+        // result set rather than widening it.
+        if (!inTitle && !inDesc && !inText) return 0;
+        if (inTitle) total += entry._title!.startsWith(term) ? 14 : 10;
+        if (inDesc) total += 4;
+        if (inText) total += 1;
+      }
+      return total;
+    }
+
+    function escapeRegex(s: string): string {
+      return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    /** Appends text to a node with every search term wrapped in <mark>. */
+    function highlight(target: HTMLElement, text: string, terms: string[]) {
+      const safe = terms.map(escapeRegex).filter(Boolean);
+      if (safe.length === 0) {
+        target.textContent = text;
+        return;
+      }
+      // split() with a capturing group puts the matches at the odd indices.
+      const parts = text.split(new RegExp(`(${safe.join('|')})`, 'gi'));
+      parts.forEach((part, i) => {
+        if (!part) return;
+        if (i % 2 === 1) {
+          const mark = document.createElement('mark');
+          mark.textContent = part;
+          target.appendChild(mark);
+        } else {
+          target.appendChild(document.createTextNode(part));
+        }
+      });
+    }
+
+    /** A window of body text around the first term that appears in it. */
+    function snippet(entry: Entry, terms: string[]): string {
+      const RADIUS = 90;
+      let at = -1;
+      for (const term of terms) {
+        at = entry._text!.indexOf(term);
+        if (at !== -1) break;
+      }
+      if (at === -1) return entry.description || entry.text.slice(0, RADIUS * 2);
+      const start = Math.max(0, at - RADIUS);
+      const end = Math.min(entry.text.length, at + RADIUS);
+      return (start > 0 ? '…' : '') + entry.text.slice(start, end).trim() + (end < entry.text.length ? '…' : '');
+    }
+
+    function render(matches: Entry[], terms: string[], query: string) {
+      results.textContent = '';
+
+      const count = document.createElement('p');
+      count.className = 'search-results__count';
+      count.textContent =
+        matches.length === 0
+          ? `No posts match “${query}”.`
+          : `${matches.length} ${matches.length === 1 ? 'post' : 'posts'} matching “${query}”`;
+      results.appendChild(count);
+
+      const list = document.createElement('ul');
+      list.className = 'post-list';
+
+      for (const entry of matches) {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = `${BASE}/posts/${entry.id}/`;
+
+        const head = document.createElement('span');
+        head.className = 'post-list__head';
+
+        const title = document.createElement('span');
+        title.className = 'post-list__title';
+        highlight(title, entry.title, terms);
+
+        const date = document.createElement('time');
+        date.className = 'post-date';
+        date.dateTime = entry.date;
+        date.textContent = new Date(entry.date).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          timeZone: 'UTC',
+        });
+
+        head.append(title, date);
+
+        const desc = document.createElement('span');
+        desc.className = 'post-list__desc';
+        highlight(desc, snippet(entry, terms), terms);
+
+        a.append(head, desc);
+        li.appendChild(a);
+        list.appendChild(li);
+      }
+
+      results.appendChild(list);
+    }
+
+    async function run(query: string, pushUrl = true) {
+      const trimmed = query.trim();
+
+      if (pushUrl) {
+        const url = new URL(window.location.href);
+        if (trimmed) url.searchParams.set('q', trimmed);
+        else url.searchParams.delete('q');
+        history.replaceState(null, '', url);
+      }
+
+      if (!trimmed) {
+        results.hidden = true;
+        results.textContent = '';
+        if (groups) groups.hidden = false;
+        return;
+      }
+
+      const data = await loadIndex();
+      const terms = trimmed.toLowerCase().split(/\s+/).filter(Boolean);
+      const matches = data
+        .map((entry) => ({ entry, s: score(entry, terms) }))
+        .filter((m) => m.s > 0)
+        // Equal scores keep the index order, which is already newest first.
+        .sort((a, b) => b.s - a.s)
+        .map((m) => m.entry);
+
+      if (groups) groups.hidden = true;
+      results.hidden = false;
+      render(matches, terms, trimmed);
+    }
+
+    let debounce = 0;
+    input.addEventListener('input', () => {
+      window.clearTimeout(debounce);
+      debounce = window.setTimeout(() => run(input.value), 120);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        input.value = '';
+        run('');
+        input.blur();
+      }
+    });
+
+    // "/" focuses the field, the convention on sites that have search —
+    // ignored while the visitor is already typing somewhere.
+    document.addEventListener('keydown', (e) => {
+      const el = document.activeElement;
+      const typing = el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement;
+      if (e.key === '/' && !typing) {
+        e.preventDefault();
+        input.focus();
+      }
+    });
+
+    // Warm the index on focus so the first keystroke already has it.
+    input.addEventListener('focus', loadIndex, { once: true });
+
+    // A shared ?q= link lands straight on its results.
+    const initial = new URL(window.location.href).searchParams.get('q');
+    if (initial) {
+      input.value = initial;
+      run(initial, false);
+    }
+  }
+</script>

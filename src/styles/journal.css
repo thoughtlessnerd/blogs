@@ -520,6 +520,56 @@ pre code {
   opacity: 0.5;
 }
 
+/* ---------- search ---------- */
+
+.search {
+  margin: 0 0 2rem;
+}
+
+/* The label is for screen readers; the placeholder carries it visually. */
+.search__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.search__input {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  color: var(--fg);
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.search__input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.search-results__count {
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--rule-strong);
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.search-results mark {
+  background: transparent;
+  color: var(--accent);
+  font-weight: 700;
+}
+
 /* ---------- math ----------
    MathJax emits SVG with fill="currentColor", so it follows --fg for free.
 

@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostList from '../components/PostList.astro';
+import Search from '../components/Search.astro';
 import { withBase } from '../lib/url';
 import { getCollection } from 'astro:content';
 
@@ -30,10 +31,12 @@ const groups = [
 ---
 <BaseLayout title="Math Proofs & Devlogs" description="Math proofs done for fun, and the occasional devlog.">
   <h1>Posts</h1>
+  <Search />
   {groups.length === 0 ? (
     <p>Nothing published yet.</p>
   ) : (
-    <>
+    /* Search hides this block by id and restores it when the field clears. */
+    <div id="post-groups">
       {groups.map((group) => (
         <section class="post-group">
           <h2 class="post-group__heading">{group.heading}</h2>
@@ -47,6 +50,6 @@ const groups = [
           </a>
         </p>
       )}
-    </>
+    </div>
   )}
 </BaseLayout>
