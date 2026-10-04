@@ -17,9 +17,14 @@ const SAFE_WIDTH = HEIGHT;
 // Resolved from the project root rather than import.meta.url — this module is
 // bundled before it runs, so a module-relative path lands in the build output.
 const fontDir = path.join(process.cwd(), 'src', 'assets', 'fonts');
+// Both families are vendored so the build never depends on a font CDN.
+// The split mirrors the site: sans for furniture — the wordmark and the meta
+// line — and serif for the writing, which on a card is the title.
 const fonts = [
   { name: 'Inter', data: fs.readFileSync(path.join(fontDir, 'Inter-Regular.ttf')), weight: 400 as const, style: 'normal' as const },
   { name: 'Inter', data: fs.readFileSync(path.join(fontDir, 'Inter-SemiBold.ttf')), weight: 600 as const, style: 'normal' as const },
+  { name: 'Source Serif 4', data: fs.readFileSync(path.join(fontDir, 'SourceSerif4-Regular.ttf')), weight: 400 as const, style: 'normal' as const },
+  { name: 'Source Serif 4', data: fs.readFileSync(path.join(fontDir, 'SourceSerif4-SemiBold.ttf')), weight: 600 as const, style: 'normal' as const },
 ];
 
 /**
@@ -49,12 +54,12 @@ export async function renderOgImage({ title, subtitle }: { title: string; subtit
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#0f1115',
+          backgroundColor: '#121110',
           // Stronger than the site's own glow: these cards are viewed against
           // black chat and feed backgrounds, where a near-black card has no
           // edges at all and reads as a loading failure.
           backgroundImage:
-            'radial-gradient(1100px 620px at 50% -15%, #273553 0%, #141926 45%, #0f1115 75%)',
+            'radial-gradient(1100px 620px at 50% -15%, #3a2b20 0%, #1d1813 45%, #121110 75%)',
           fontFamily: 'Inter',
         },
         children: [
@@ -76,7 +81,7 @@ export async function renderOgImage({ title, subtitle }: { title: string; subtit
                       display: 'flex',
                       fontSize: 30,
                       letterSpacing: 5,
-                      color: '#7aa2f7',
+                      color: '#e4916a',
                       fontWeight: 600,
                     },
                     children: 'THOUGHTLESSNERD',
@@ -91,7 +96,7 @@ export async function renderOgImage({ title, subtitle }: { title: string; subtit
                       height: 4,
                       marginTop: 28,
                       marginBottom: 36,
-                      backgroundColor: '#7aa2f7',
+                      backgroundColor: '#e4916a',
                       borderRadius: 2,
                     },
                   },
@@ -101,9 +106,10 @@ export async function renderOgImage({ title, subtitle }: { title: string; subtit
                   props: {
                     style: {
                       display: 'flex',
+                      fontFamily: 'Source Serif 4',
                       fontSize: titleSize(title),
                       lineHeight: 1.2,
-                      color: '#f2f4f7',
+                      color: '#eae5db',
                       fontWeight: 600,
                     },
                     children: title,
@@ -116,7 +122,7 @@ export async function renderOgImage({ title, subtitle }: { title: string; subtit
                       display: 'flex',
                       marginTop: 36,
                       fontSize: 28,
-                      color: '#9aa3af',
+                      color: '#9b9387',
                     },
                     children: subtitle,
                   },
@@ -136,7 +142,7 @@ export async function renderOgImage({ title, subtitle }: { title: string; subtit
                 width: WIDTH,
                 height: 10,
                 display: 'flex',
-                backgroundImage: 'linear-gradient(90deg, #2563eb 0%, #7aa2f7 100%)',
+                backgroundImage: 'linear-gradient(90deg, #a23b1c 0%, #e4916a 100%)',
               },
             },
           },
