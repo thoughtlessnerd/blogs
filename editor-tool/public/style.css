@@ -8,6 +8,9 @@ header input { flex: 1; padding: 0.4rem; }
 
 /* A screenshot is usually wider than this pane, and without a cap it pushes
    the preview sideways instead of scaling down. */
+/* Mirrors the site's maths tint so the preview shows the same distinction. */
+#preview mjx-container { color: #8a3c1e; }
+
 #preview img,
 #preview video { max-width: 100%; height: auto; display: block; margin: 0.75rem 0; }
 #dropzone.dragging { outline: 2px dashed #4a90d9; outline-offset: -4px; }

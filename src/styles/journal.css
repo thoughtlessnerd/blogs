@@ -20,6 +20,8 @@
   --accent-soft: #f6efe7;
   --header-bg: rgba(252, 251, 248, 0.82);
   --rule-strong: #c9c2b4;
+  /* Maths sits a shade warmer than the prose; see the note by the mjx rule. */
+  --math: #8a3c1e;
   /* Reading column, set wider than the 560-656px those sites use. A wider
      column only works if the type grows with it: what actually tires the eye
      is characters per line, not pixels. At 52rem with 21px text the measure
@@ -48,6 +50,7 @@
     --accent-soft: #1d1a17;
     --header-bg: rgba(18, 17, 16, 0.8);
     --rule-strong: #3d3832;
+    --math: #e8b595;
     --bg-glow: radial-gradient(900px 480px at 50% -5%, #221d18 0%, rgba(18, 17, 16, 0) 72%);
   }
 }
@@ -419,8 +422,10 @@ pre code {
 .post-body img,
 .post-body video {
   display: block;
-  width: min(var(--wide), 100vw - 3rem);
-  max-width: none;
+  /* max-width, not width: a 685px diagram stretched to the full breakout
+     width is just a blurry 685px diagram. Small images keep their own size
+     and only large ones are held back. */
+  max-width: min(var(--wide), 100vw - 3rem);
   height: auto;
   margin: 2.25rem 0;
   margin-left: 50%;
@@ -577,8 +582,16 @@ pre code {
    wrecking its line, so it is capped and scales down; display math is its own
    block, so it keeps full size and scrolls inside its own box. */
 
+/* Prose and maths are both serif here, which is what makes a formula sit in
+   the line instead of looking pasted in. The cost is that an upright
+   expression -- $(1,2,2)$, or anything in a 	ext{} -- becomes
+   indistinguishable from the sentence around it. Italic variables like $k$
+   carry themselves; these do not. A slight warm shift marks every expression
+   as maths without turning a page of them into confetti. MathJax emits
+   fill="currentColor", so setting the colour here is all it takes. */
 mjx-container {
   max-width: 100%;
+  color: var(--math);
 }
 
 mjx-container svg {

@@ -26,8 +26,23 @@ function setStatus(msg, isError = false) {
   if (msg && !isError) setTimeout(() => { if (statusEl.textContent === msg) statusEl.textContent = ''; }, 4000);
 }
 
+// Mirrors src/lib/rehype-image-size.mjs. The preview is only useful if it
+// agrees with the published page, so the same rule has to run in both.
+const IMAGE_SIZE = /^(\d+(?:\.\d+)?)(px|%)?$/;
+
+function applyImageSizes(root) {
+  for (const img of root.querySelectorAll('img[title]')) {
+    const match = IMAGE_SIZE.exec(img.title.trim());
+    if (!match) continue;
+    const [, amount, unit] = match;
+    img.style.maxWidth = unit === '%' ? `${amount}%` : `${amount}px`;
+    img.removeAttribute('title');
+  }
+}
+
 function renderPreview() {
   preview.innerHTML = marked.parse(editor.value);
+  applyImageSizes(preview);
   if (window.MathJax?.typesetPromise) window.MathJax.typesetPromise([preview]);
 }
 

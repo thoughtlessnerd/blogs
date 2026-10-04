@@ -15,6 +15,7 @@ import {
   readPost,
   savePost,
   deletePost,
+  deleteDraft,
 } from '../lib/posts.js';
 
 let tmpRoot, draftsDir, postsDir;
@@ -203,6 +204,33 @@ describe('published posts', () => {
     expect(post.description).toBe('after');
     expect(post.body.trim()).toBe('new body');
     expect(post.pubDate).toBe('2026-02-03');
+  });
+
+  it('deleteDraft removes the draft and returns its path', () => {
+    saveDraft({ draftsDir, slug: 'scrap', title: 'Scrap', description: 'd', body: 'b' });
+
+    const removed = deleteDraft({ draftsDir, slug: 'scrap' });
+
+    expect(removed).toBe(path.join(draftsDir, 'scrap.md'));
+    expect(fs.existsSync(removed)).toBe(false);
+    expect(listDrafts({ draftsDir })).toEqual([]);
+  });
+
+  it('deleteDraft throws for a draft that is not there', () => {
+    expect(() => deleteDraft({ draftsDir, slug: 'ghost' })).toThrow(/not found/);
+  });
+
+  it('deleting a draft leaves a published post of the same slug alone', () => {
+    // Publishing moves the draft into posts under the same slug, so a draft
+    // re-saved afterwards shares that slug. Removing it must not disturb the
+    // published copy.
+    publish('shared', 'Shared', 'd', 'body', '2026-02-03');
+    saveDraft({ draftsDir, slug: 'shared', title: 'Shared', description: 'd', body: 'newer' });
+
+    deleteDraft({ draftsDir, slug: 'shared' });
+
+    expect(fs.existsSync(path.join(postsDir, 'shared.md'))).toBe(true);
+    expect(slugTaken({ draftsDir, postsDir, slug: 'shared' })).toBe('post');
   });
 
   it('deletePost removes the file and returns its path', () => {
